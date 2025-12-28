@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小R - AI助手</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>小R - AI助手</h1>
+            <div class="header-buttons">
+                <button id="newChatButton" class="new-chat-btn">新对话</button>
+                <button id="chatListButton" class="chat-list-btn">对话列表</button>
+                <button id="settingsButton" class="settings-btn">⚙️</button>
+            </div>
+        </header>
+        
+        <!-- 对话列表侧边栏 -->
+        <div id="chatListSidebar" class="chat-list-sidebar">
+            <div class="chat-list-header">
+                <h3>对话列表</h3>
+                <button id="closeChatList" class="close-chat-list-btn">×</button>
+            </div>
+            <div id="chatList" class="chat-list"></div>
+        </div>
+        
+        <!-- 设置面板 -->
+        <div id="settingsPanel" class="settings-panel">
+            <div class="settings-content">
+                <h3>设置</h3>
+                
+                <div class="setting-item">
+                    <label for="themeSelect">主题:</label>
+                    <select id="themeSelect">
+                        <option value="light">浅色</option>
+                        <option value="dark">深色</option>
+                    </select>
+                </div>
+                
+                <div class="setting-item">
+                    <label for="contextSelect">上下文对话数量:</label>
+                    <select id="contextSelect">
+                        <option value="0">不启用上下文</option>
+                        <option value="2">1轮对话（用户+AI）</option>
+                        <option value="4" selected>2轮对话（用户+AI）</option>
+                        <option value="6">3轮对话（用户+AI）</option>
+                        <option value="8">4轮对话（用户+AI）</option>
+                        <option value="10">5轮对话（用户+AI）</option>
+                        <option value="all">完整历史</option>
+                    </select>
+                </div>
+                
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="voiceToggle" checked> 启用AI语音回复
+                    </label>
+                </div>
+                
+                <div class="setting-item">
+                    <label for="aiModelSelect">AI模型:</label>
+                    <select id="aiModelSelect">
+                        <option value="deepseek">DeepseekV3.1</option>
+                        <option value="claude">豆包</option>
+                        <option value="yuanbao">腾讯元宝</option>
+                        <option value="qwen3">Qwen3</option>
+                    </select>
+                </div>
+                
+                <button id="saveSettings" class="save-btn">保存设置</button>
+                <button id="clearDataButton" class="clear-data-btn">清除所有数据</button>
+                <button id="closeSettings" class="close-btn">关闭</button>
+            </div>
+        </div>
+        
+        <main>
+            <div class="chat-container">
+                <div class="chat-history" id="chatHistory">
+                    <!-- 聊天记录将在这里显示 -->
+                </div>
+                
+                <div class="input-area">
+                    <div class="input-with-buttons">
+                        <textarea 
+                            id="userInput" 
+                            placeholder="和小R聊天..." 
+                            rows="3"
+                        ></textarea>
+                        <button id="voiceInputButton" class="inline-voice-btn" title="语音输入">🎤</button>
+                        <div class="skill-buttons">
+                            <button id="imageGenButton" class="skill-btn" title="AI图片生成">🖼️ 图片生成</button>
+                            <button id="imageOcrButton" class="skill-btn" title="图片OCR识别">🔍 OCR识别</button>
+                            <button id="translationButton" class="skill-btn" title="翻译助手">🌐 翻译</button>
+                        </div>
+                    </div>
+                    <div class="button-group">
+                        <button id="sendButton">发送</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <button id="stopVoiceButton" class="stop-voice-btn">停止说话</button>
+    
+    <!-- 自定义提示框 -->
+    <div id="customAlert" class="custom-alert" style="display: none;">
+        <div class="alert-content">
+            <div class="alert-header">
+                <span class="alert-title" id="alertTitle">提示</span>
+                <span class="alert-close" id="alertClose">&times;</span>
+            </div>
+            <div class="alert-body">
+                <p id="alertMessage"></p>
+            </div>
+            <div class="alert-footer">
+                <button id="alertConfirm" class="alert-btn">确定</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 自定义确认框 -->
+    <div id="customConfirm" class="custom-confirm" style="display: none;">
+        <div class="confirm-content">
+            <div class="confirm-header">
+                <span class="confirm-title" id="confirmTitle">确认</span>
+                <span class="confirm-close" id="confirmClose">&times;</span>
+            </div>
+            <div class="confirm-body">
+                <p id="confirmMessage"></p>
+            </div>
+            <div class="confirm-footer">
+                <button id="confirmCancel" class="confirm-btn cancel-btn">取消</button>
+                <button id="confirmOk" class="confirm-btn ok-btn">确定</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 自定义输入框 -->
+    <div id="customPrompt" class="custom-prompt" style="display: none;">
+        <div class="prompt-content">
+            <div class="prompt-header">
+                <span class="prompt-title" id="promptTitle">输入</span>
+                <span class="prompt-close" id="promptClose">&times;</span>
+            </div>
+            <div class="prompt-body">
+                <p id="promptMessage"></p>
+                <input type="text" id="promptInput" class="prompt-input">
+            </div>
+            <div class="prompt-footer">
+                <button id="promptCancel" class="prompt-btn cancel-btn">取消</button>
+                <button id="promptOk" class="prompt-btn ok-btn">确定</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="clearData.js"></script>
+        <script src="renderer.js"></script>
+</body>
+</html>
