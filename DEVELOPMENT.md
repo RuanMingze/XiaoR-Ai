@@ -21,7 +21,7 @@
 
 ### 1. AI对话功能
 - 使用Electron IPC机制与主进程通信
-- 支持多种AI模型（DeepseekV3.1、豆包、腾讯元宝、Qwen3）
+- 支持多种AI模型（DeepseekV3.2、豆包、腾讯元宝、Qwen3）
 - 通过GET请求调用API接口
 
 ### 2. 对话管理
@@ -50,7 +50,7 @@
 ## API接口
 
 ### AI对话API
-- DeepseekV3.1: `https://api.jkyai.top/API/depsek3.1.php`
+- DeepseekV3.2: `https://api.jkyai.top/API/depsek3.2.php`
 - 豆包: `https://api.jkyai.top/API/doubao.php`
 - 腾讯元宝: `https://api.jkyai.top/API/yuanbao.php`
 - Qwen3: `https://api.jkyai.top/API/qwen3.php`
@@ -97,6 +97,13 @@ GET /API/endpoint.php?question={用户问题}&system={系统提示词}
 - 清除本地存储的对话历史
 - 清除用户设置
 - 清除Electron本地数据
+
+### 新年特效功能（v1.0.1）
+- 添加雪花特效，营造节日氛围
+- 添加爆竹动画，可点击触发烟花效果
+- 添加按钮装饰效果
+- 提供雪花特效开关设置
+- 实现新年祝福自动显示
 
 ## 开发说明
 

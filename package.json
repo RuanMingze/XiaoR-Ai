@@ -1,15 +1,15 @@
 {
   "name": "xiaor-ai-assistant",
-  "version": "1.0.0",
-  "description": "小R - AI助手",
+  "version": "1.0.1",
+  "description": "小R助手",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "dev": "cross-env NODE_ENV=development electron .",
-    "build": "electron-builder",
-    "dist": "electron-builder",
+    "build": "node build-script.js",
+    "dist": "node build-script.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build&run": "electron-builder --dir && start .\\dist\\win-unpacked\\小R - AI助手.exe"
+    "build&run": "npx electron-builder --dir && start .\\dist\\win-unpacked\\小R - AI助手.exe"
   },
   "keywords": [
     "electron",
@@ -19,12 +19,14 @@
   "author": "Ruanm",
   "license": "MIT",
   "devDependencies": {
+    "cnpm": "^9.4.0",
+    "dmg-license": "^1.0.11",
     "electron": "^39.0.0",
     "electron-builder": "^26.0.12"
   },
   "build": {
     "appId": "com.ruansystem.xiaor-ai-assistant",
-    "productName": "小R - AI助手",
+    "productName": "小R助手",
     "icon": "RuanmAi.png",
     "directories": {
       "output": "dist"
@@ -42,6 +44,6 @@
     }
   },
   "dependencies": {
-    "cnpm": "^9.4.0"
+    "asar": "^3.2.0"
   }
 }

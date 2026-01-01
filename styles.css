@@ -636,12 +636,132 @@ body.dark-theme .skill-btn.active-skill {
   border-color: #004085;
 }
 
+/* 主技能按钮 - 与语音输入按钮样式相同 */
+.skill-btn-main {
+  padding: 6px 10px;
+  background-color: #f0f0f0;
+  color: #333;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.3s;
+  min-width: 50px;
+  height: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.skill-btn-main:hover {
+  background-color: #e0e0e0;
+}
+
+.skill-btn-main.recording {
+  background-color: #ff6b6b;
+  color: white;
+  animation: pulse 1s infinite;
+}
+
+/* 深色主题下的主技能按钮 */
+body.dark-theme .skill-btn-main {
+  background-color: #555;
+  color: white;
+}
+
+body.dark-theme .skill-btn-main:hover {
+  background-color: #666;
+}
+
+body.dark-theme .skill-btn-main.recording {
+  background-color: #d32f2f;
+}
+
+/* 技能弹出菜单 */
+.skill-menu {
+  position: absolute;
+  bottom: 60px;
+  left: 10px;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 100;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: auto;
+  min-width: 150px;
+}
+
+/* 深色主题下的技能弹出菜单 */
+body.dark-theme .skill-menu {
+  background-color: #2a2a2a;
+  border-color: #555;
+}
+
+/* 技能菜单按钮 */
+.skill-menu-btn {
+  padding: 8px 15px;
+  background-color: #f0f0f0;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  text-align: left;
+}
+
+.skill-menu-btn:hover {
+  background-color: #e0e0e0;
+}
+
+/* 深色主题下的技能菜单按钮 */
+body.dark-theme .skill-menu-btn {
+  background-color: #444;
+  color: #e0e0e0;
+  border: 1px solid #666;
+}
+
+body.dark-theme .skill-menu-btn:hover {
+  background-color: #555;
+}
+
+/* 激活的技能菜单按钮 */
+.skill-menu-btn.active-skill {
+  background-color: #007bff;
+  color: white;
+  border-color: #0056b3;
+}
+
+/* 深色主题下的激活技能菜单按钮 */
+body.dark-theme .skill-menu-btn.active-skill {
+  background-color: #0056b3;
+  color: white;
+  border-color: #004085;
+}
+
 /* 输入框和按钮容器 */
 .input-with-buttons {
   position: relative;
   display: flex;
   align-items: flex-end;
   flex: 1;
+}
+
+/* 输入框左下角的按钮容器 */
+.input-bottom-left {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  z-index: 10;
 }
 
 #userInput {

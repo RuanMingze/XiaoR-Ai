@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>小R - AI助手</title>
     <link rel="stylesheet" href="styles.css">
+    <script>
+        // 检查用户是否已经看过新年祝福
+        const newYearGreetingSeen = localStorage.getItem('newYearGreetingSeen');
+        const today = new Date().toDateString();
+        
+        // 如果用户今天还没有看过新年祝福，则重定向到新年祝福页面
+        if (newYearGreetingSeen !== today) {
+            window.location.href = 'new-year-greeting.html';
+        }
+        // 否则直接加载当前页面（即原来的主界面）
+    </script>
 </head>
 <body>
     <div class="container">
@@ -21,7 +32,7 @@
         <div id="chatListSidebar" class="chat-list-sidebar">
             <div class="chat-list-header">
                 <h3>对话列表</h3>
-                <button id="closeChatList" class="close-chat-list-btn">×</button>
+                <button id="closeChatList" class="close-chat-list-btn">x</button>
             </div>
             <div id="chatList" class="chat-list"></div>
         </div>
@@ -61,11 +72,22 @@
                 <div class="setting-item">
                     <label for="aiModelSelect">AI模型:</label>
                     <select id="aiModelSelect">
-                        <option value="deepseek">DeepseekV3.1</option>
+                        <option value="deepseek">DeepseekV3.2</option>
                         <option value="claude">豆包</option>
                         <option value="yuanbao">腾讯元宝</option>
                         <option value="qwen3">Qwen3</option>
+                        <option value="custom">自定义模型</option>
                     </select>
+                </div>
+                
+                <div id="customModelSettings" class="setting-item" style="display: none;">
+                    <label for="customModelUrl">自定义模型API接口:</label>
+                    <input type="text" id="customModelUrl" placeholder="https://www.ai.com/Deepseek.php?q=%提问内容%&s=%联想词%">
+                    <div class="custom-model-help">
+                        参数说明：<br>
+                        %提问内容% - 替换为用户的问题<br>
+                        %联想词% - 替换为system提示词
+                    </div>
                 </div>
                 
                 <button id="saveSettings" class="save-btn">保存设置</button>
@@ -87,11 +109,9 @@
                             placeholder="和小R聊天..." 
                             rows="3"
                         ></textarea>
-                        <button id="voiceInputButton" class="inline-voice-btn" title="语音输入">🎤</button>
-                        <div class="skill-buttons">
-                            <button id="imageGenButton" class="skill-btn" title="AI图片生成">🖼️ 图片生成</button>
-                            <button id="imageOcrButton" class="skill-btn" title="图片OCR识别">🔍 OCR识别</button>
-                            <button id="translationButton" class="skill-btn" title="翻译助手">🌐 翻译</button>
+                        <button id="voiceInputButton" class="inline-voice-btn" title="语音输入（在Electron环境中可能需要系统级权限）">🎤</button>
+                        <div class="input-bottom-left">
+                            <button id="skillButton" class="skill-btn-main" title="技能">💡技能</button>
                         </div>
                     </div>
                     <div class="button-group">
@@ -103,6 +123,13 @@
     </div>
     
     <button id="stopVoiceButton" class="stop-voice-btn">停止说话</button>
+    
+    <!-- 技能弹出菜单 -->
+    <div id="skillMenu" class="skill-menu" style="display: none;">
+        <button id="imageGenMenuButton" class="skill-menu-btn" title="AI图片生成">🖼️ 图片生成</button>
+        <button id="imageOcrMenuButton" class="skill-menu-btn" title="图片OCR识别">🔍 OCR识别</button>
+        <button id="translationMenuButton" class="skill-menu-btn" title="翻译助手">🌐 翻译</button>
+    </div>
     
     <!-- 自定义提示框 -->
     <div id="customAlert" class="custom-alert" style="display: none;">

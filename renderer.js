@@ -13,12 +13,18 @@ const aiModelSelect = document.getElementById('aiModelSelect');
 const saveSettingsButton = document.getElementById('saveSettings');
 const closeSettingsButton = document.getElementById('closeSettings');
 const clearDataButton = document.getElementById('clearDataButton');
+const customModelSettings = document.getElementById('customModelSettings');
+const customModelUrl = document.getElementById('customModelUrl');
 
 // 获取新对话按钮元素
 const newChatButton = document.getElementById('newChatButton');
 
 // 获取语音输入按钮元素
 const voiceInputButton = document.querySelector('.inline-voice-btn');
+
+// 获取技能按钮和菜单元素
+const skillButton = document.getElementById('skillButton');
+const skillMenu = document.getElementById('skillMenu');
 
 // 存储所有对话
 let allConversations = [];
@@ -34,6 +40,107 @@ let activeSkillMode = null;
 
 // 当前AI请求状态
 let currentRequestAborted = false;
+
+// 保存技能状态到本地存储
+function saveSkillState() {
+  try {
+    localStorage.setItem('xiaor-skill-state', JSON.stringify({
+      activeSkillMode: activeSkillMode
+    }));
+  } catch (error) {
+    console.error('保存技能状态失败:', error);
+  }
+}
+
+// 从本地存储加载技能状态
+function loadSkillState() {
+  try {
+    const skillState = localStorage.getItem('xiaor-skill-state');
+    if (skillState) {
+      const parsedState = JSON.parse(skillState);
+      activeSkillMode = parsedState.activeSkillMode || null;
+      
+      // 更新按钮状态以反映加载的状态
+      updateSkillButtonStates();
+    }
+  } catch (error) {
+    console.error('加载技能状态失败:', error);
+    activeSkillMode = null;
+  }
+}
+
+// 显示图片放大模态框
+function showImageModal(imageSrc) {
+  // 创建或获取模态框元素
+  let modal = document.getElementById('imageModal');
+  
+  if (!modal) {
+    // 创建模态框元素
+    modal = document.createElement('div');
+    modal.id = 'imageModal';
+    modal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+    `;
+    
+    // 创建图片元素
+    const modalImg = document.createElement('img');
+    modalImg.id = 'modalImage';
+    modalImg.style.cssText = `
+      max-width: 90%;
+      max-height: 90%;
+      object-fit: contain;
+      border-radius: 4px;
+      cursor: zoom-in;
+      transition: transform 0.3s ease;
+    `;
+    
+    // 点击图片进行放大/缩小
+    modalImg.addEventListener('click', function(e) {
+      e.stopPropagation(); // 阻止事件冒泡到模态框
+      
+      // 检查当前是否已经放大
+      const isCurrentlyZoomed = this.style.transform === 'scale(1.5)';
+      
+      if (isCurrentlyZoomed) {
+        // 如果当前是放大状态，缩小回原尺寸
+        this.style.transform = 'scale(1)';
+        this.style.cursor = 'zoom-in';
+      } else {
+        // 如果当前是正常状态，放大图片
+        this.style.transform = 'scale(1.5)';
+        this.style.cursor = 'zoom-out';
+      }
+    });
+    
+    modal.appendChild(modalImg);
+    document.body.appendChild(modal);
+    
+    // 点击模态框的背景区域关闭
+    modal.addEventListener('click', function() {
+      // 重置图片状态
+      modalImg.style.transform = 'scale(1)';
+      modalImg.style.cursor = 'zoom-in';
+      this.style.display = 'none';
+    });
+  }
+  
+  // 设置图片源并显示模态框
+  const modalImg = document.getElementById('modalImage');
+  modalImg.src = imageSrc;
+  // 重置图片状态
+  modalImg.style.transform = 'scale(1)';
+  modalImg.style.cursor = 'zoom-in';
+  modal.style.display = 'flex';
+}
 
 // 修改parseMarkdown函数，增强代码块处理
 function parseMarkdown(text) {
@@ -78,14 +185,25 @@ function parseMarkdown(text) {
 }
 
 // 发送消息到聊天历史记录
-function addMessageToHistory(message, isUser = false) {
+function addMessageToHistory(message, isUser = false, messageId = null) {
   const messageDiv = document.createElement('div');
   messageDiv.classList.add('message');
   messageDiv.classList.add(isUser ? 'user' : 'ai');
   
+  // 如果提供了messageId，则设置为该元素的ID
+  if (messageId) {
+    messageDiv.id = messageId;
+  }
+  
   // 如果是AI消息，解析Markdown
   if (!isUser) {
-    messageDiv.innerHTML = parseMarkdown(message);
+    // 检查消息是否包含HTML标记，如果是，则直接使用innerHTML
+    // 这是为了处理图片生成结果等包含HTML内容的消息
+    if (message.includes('<img') || message.includes('<br>') || message.includes('<small>') || message.includes('href=')) {
+      messageDiv.innerHTML = message;
+    } else {
+      messageDiv.innerHTML = parseMarkdown(message);
+    }
   } else {
     messageDiv.textContent = message;
   }
@@ -94,6 +212,52 @@ function addMessageToHistory(message, isUser = false) {
   
   // 滚动到底部
   chatHistory.scrollTop = chatHistory.scrollHeight;
+}
+
+// 更新现有消息内容
+function updateMessageContent(messageId, newContent) {
+  const messageElement = document.getElementById(messageId);
+  if (messageElement) {
+    // 更新内容
+    // 检查新内容是否包含HTML标记，如果是，则直接使用innerHTML
+    if (newContent.includes('<img') || newContent.includes('<br>') || newContent.includes('<small>') || newContent.includes('href=')) {
+      messageElement.innerHTML = newContent;
+    } else {
+      messageElement.innerHTML = parseMarkdown(newContent);
+    }
+    
+    // 滚动到底部
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+  }
+}
+
+// 更新对话历史中的消息
+function updateMessageInHistory(messageId, newContent) {
+  // 更新当前对话历史中对应的消息
+  const currentHistory = getConversationHistory();
+  
+  // 由于我们为动态消息分配了ID，我们需要将消息ID与历史记录项关联
+  // 这里我们不使用模糊匹配，而是需要一种方式来标记消息
+  // 为解决这个问题，我们需要在添加"图片正在生成中..."消息时也记录其索引
+  
+  // 为了更准确地更新消息，我们创建一个临时标识
+  const loadingMessage = '图片正在生成中...';
+  
+  for (let i = currentHistory.length - 1; i >= 0; i--) {
+    if (currentHistory[i].role === 'assistant' && currentHistory[i].content === loadingMessage) {
+      currentHistory[i].content = newContent;
+      // 检查新内容是否包含HTML标记，如果是，则标记为HTML内容
+      if (newContent.includes('<img') || newContent.includes('<br>') || newContent.includes('<small>') || newContent.includes('href=')) {
+        currentHistory[i].isHtmlContent = true;
+      }
+      break;
+    }
+  }
+  
+  setConversationHistory(currentHistory);
+  
+  // 保存所有对话到本地
+  saveAllConversations();
 }
 
 // 显示加载指示器和"正在思考"状态
@@ -151,7 +315,7 @@ async function sendToAI(question) {
       
       // 根据激活的技能模式修改system消息
       if (activeSkillMode === 'imageGen') {
-        systemMessage = '你好，现在你的角色是AI图片生成机器人，接下来我会给你一些中文关键词描述，请你在不影响我关键词描述的情况下，先根据我的描述进行文本润色、丰富描述细节，之后转换成英文，并将英文文本填充到下面URL链接的占位符prompt中:\n\n![image]\n\n(https://image.pollinations.ai/prompt/{prompt}?width=1680&height=1080&enhance=true&private=true&nologo=true&safe=true&model=flux)';
+        systemMessage = '你现在是专业图片生成Ai，根据用户的图片描述生成图片。请严格按照以下步骤操作：1.对用户的图片描述进行润色成中文；2.输出润色后的内容；3.对用户描述给予回应或建议；4.最后必须输出XiaoR://Request?URL=https://api.jkyai.top/API/qwen-image/index.php?msg=润色后的图片描述来发起API请求。请按以下格式输出：\n\n润色后的内容：[润色后的图片描述]\n\n[对用户描述的简短回应或建议]\n\nXiaoR://Request?URL=https://api.jkyai.top/API/qwen-image/index.php?msg=润色后的图片描述';
       } else if (activeSkillMode === 'imageOcr') {
         // 检查用户是否提供了图片URL
         const imageUrlRegex = /(https?:\/\/[^\s]+\.(?:png|jpe?g|gif|webp|bmp|tiff|svg))/i;
@@ -215,20 +379,34 @@ async function sendToAI(question) {
       // 获取当前AI模型设置
       const savedSettings = localStorage.getItem('xiaor-settings');
       let aiModel = 'deepseek'; // 默认为Deepseek
+      let settings = null; // 定义settings变量
       
       if (savedSettings) {
-        const settings = JSON.parse(savedSettings);
+        settings = JSON.parse(savedSettings);
         aiModel = settings.aiModel || 'deepseek';
       }
       
       // 根据AI模型选择API端点
-      let apiEndpoint = 'https://api.jkyai.top/API/depsek3.1.php'; // 默认为Deepseek
+      let apiEndpoint = 'https://api.jkyai.top/API/depsek3.2.php'; // 默认为Deepseek
       if (aiModel === 'claude') {
         apiEndpoint = 'https://api.jkyai.top/API/doubao.php'; // 豆包
       } else if (aiModel === 'yuanbao') {
         apiEndpoint = 'https://api.jkyai.top/API/yuanbao.php'; // 腾讯元宝
       } else if (aiModel === 'qwen3') {
         apiEndpoint = 'https://api.jkyai.top/API/qwen3.php'; // Qwen3
+      } else if (aiModel === 'custom') {
+        // 自定义模型：从设置中获取API URL并替换占位符
+        if (settings && settings.customModelUrl) {
+          const customUrl = settings.customModelUrl || '';
+          if (customUrl) {
+            // 替换占位符
+            apiEndpoint = customUrl.replace('%提问内容%', encodeURIComponent(question)).replace('%联想词%', encodeURIComponent(systemMessage));
+          } else {
+            throw new Error('自定义模型URL未设置');
+          }
+        } else {
+          throw new Error('自定义模型URL未设置');
+        }
       }
       
       // 通过 Electron API 发送请求
@@ -262,6 +440,9 @@ async function sendToAI(question) {
     }
   }
   
+  // 将lastError变量提升到函数作用域顶部
+  let lastError;
+  
   try {
     // 获取设置的上下文对话数量
     const savedSettings = localStorage.getItem('xiaor-settings');
@@ -284,7 +465,6 @@ async function sendToAI(question) {
     // 尝试发送请求，如果失败则逐步减少上下文数量
     let response;
     let currentContextCount = maxContextCount;
-    let lastError;
     
     while (currentContextCount >= 0) {
       try {
@@ -316,15 +496,111 @@ async function sendToAI(question) {
       } else {
         // 成功获取 AI 回复
         const aiResponse = response;
-        addMessageToHistory(aiResponse, false);
         
-        // 播放AI语音回复
-        playAIVoice(aiResponse);
+        // 检查AI响应是否包含XiaoR://Request协议
+        const requestProtocolRegex = /XiaoR:\/\/Request\?URL=([\s\S]*)/;
+        const requestMatch = aiResponse.match(requestProtocolRegex);
+        
+        if (requestMatch) {
+          // 提取请求URL
+          const requestUrl = requestMatch[1].trim();
+          
+          // 显示AI的原始响应，但隐藏XiaoR://Request?URL=部分
+          const aiResponseWithoutProtocol = aiResponse.replace(requestProtocolRegex, '').trim();
+          addMessageToHistory(aiResponseWithoutProtocol, false);
+          
+          // 创建一个唯一的ID用于标识正在生成的消息
+          const messageId = 'api-request-' + Date.now();
+          
+          // 在AI输出下方显示"图片正在生成中..."
+          const loadingMessage = '图片正在生成中...';
+          addMessageToHistory(loadingMessage, false, messageId);
+          
+          // 同时将此消息添加到对话历史中
+          const currentHistory = getConversationHistory();
+          currentHistory.push({ role: 'assistant', content: loadingMessage });
+          setConversationHistory(currentHistory);
+          
+          // 发起API请求
+          try {
+            fetch(requestUrl)
+              .then(apiResponse => apiResponse.text())
+              .then(apiResult => {
+                // 检查API结果是否为图片链接
+                const isImageUrl = apiResult.trim().endsWith('.jpg') || apiResult.trim().endsWith('.jpeg') || apiResult.trim().endsWith('.png') || apiResult.trim().endsWith('.gif') || apiResult.trim().endsWith('.webp');
+                
+                if (isImageUrl) {
+                  // 如果是图片链接，直接显示图片和链接
+                  const imgHtml = `<img src="${apiResult}" alt="生成的图片" style="max-width: 100%; height: auto; border-radius: 8px; margin-top: 10px; cursor: pointer;" onclick="showImageModal('${apiResult}')" onload="console.log('图片加载成功:', this.src);" onerror="console.error('图片加载失败:', this.src);">`;
+                  
+                  // 创建一个段落来包含文本、图片和链接
+                  const resultElement = document.createElement('div');
+                  resultElement.innerHTML = `图片生成成功！<br>${imgHtml}<br><small>图片链接：<a href="${apiResult}" target="_blank">${apiResult}</a></small>`;
+                  
+                  // 直接更新元素内容，绕过parseMarkdown
+                  const messageElement = document.getElementById(messageId);
+                  if (messageElement) {
+                    messageElement.innerHTML = '';
+                    messageElement.appendChild(resultElement);
+                  }
+                  
+                  // 更新对话历史中的这条消息
+                  updateMessageInHistory(messageId, `图片生成成功！<br>${imgHtml}<br><small>图片链接：<a href="${apiResult}" target="_blank">${apiResult}</a></small>`);
+                  
+                  // 播放语音
+                  playAIVoice('图片生成成功！');
+                } else {
+                  // 如果不是图片链接，按原格式显示
+                  const formattedResult = `图片生成成功！图片链接：${apiResult}`;
+                  
+                  // 更新消息内容为格式化后的结果
+                  updateMessageContent(messageId, formattedResult);
+                  
+                  // 更新对话历史中的这条消息
+                  updateMessageInHistory(messageId, formattedResult);
+                  
+                  // 播放API结果的语音
+                  playAIVoice(formattedResult);
+                }
+              })
+              .catch(error => {
+                console.error('API请求失败:', error);
+                const errorMessage = `API请求失败: ${error.message}`;
+                updateMessageContent(messageId, errorMessage);
+                
+                // 更新对话历史中的这条消息
+                updateMessageInHistory(messageId, errorMessage);
+              });
+          } catch (error) {
+            console.error('处理API请求时出错:', error);
+            const errorMessage = `处理API请求时出错: ${error.message}`;
+            updateMessageContent(messageId, errorMessage);
+            
+            // 更新对话历史中的这条消息
+            updateMessageInHistory(messageId, errorMessage);
+          }
+        } else {
+          // 正常处理AI响应
+          addMessageToHistory(aiResponse, false);
+          
+          // 播放AI语音回复
+          playAIVoice(aiResponse);
+        }
         
         // 更新当前对话的历史
         const currentHistory = getConversationHistory();
         currentHistory.push({ role: 'user', content: question });
-        currentHistory.push({ role: 'assistant', content: aiResponse });
+        
+        // 对于图片生成请求，保存处理后的AI响应（去除协议部分）
+        if (requestMatch) {
+          // 保存AI响应但去除协议部分
+          const aiResponseWithoutProtocol = aiResponse.replace(requestProtocolRegex, '').trim();
+          currentHistory.push({ role: 'assistant', content: aiResponseWithoutProtocol });
+          // 注意："图片正在生成中..."消息已经在此前添加
+        } else {
+          // 对于非图片生成请求，保存完整的AI响应
+          currentHistory.push({ role: 'assistant', content: aiResponse });
+        }
         setConversationHistory(currentHistory);
         
         // 保存所有对话到本地
@@ -386,8 +662,472 @@ userInput.addEventListener('keydown', (event) => {
   }
 });
 
+// 语音输入按钮事件监听器
+if (voiceInputButton) {
+  voiceInputButton.addEventListener('click', () => {
+    toggleVoiceRecognition();
+  });
+}
+
+// 技能按钮事件监听器
+if (skillButton) {
+  skillButton.addEventListener('click', (event) => {
+    event.stopPropagation(); // 阻止事件冒泡
+    // 切换技能菜单显示状态
+    if (skillMenu.style.display === 'none' || !skillMenu.style.display) {
+      skillMenu.style.display = 'flex';
+      // 添加点击外部区域隐藏菜单的事件
+      document.addEventListener('click', hideSkillMenu);
+    } else {
+      skillMenu.style.display = 'none';
+      // 移除点击外部区域隐藏菜单的事件
+      document.removeEventListener('click', hideSkillMenu);
+    }
+  });
+}
+
+// 隐藏技能菜单的函数
+function hideSkillMenu(event) {
+  if (!skillMenu.contains(event.target) && event.target !== skillButton) {
+    skillMenu.style.display = 'none';
+    document.removeEventListener('click', hideSkillMenu);
+  }
+}
+
+// 为技能菜单按钮添加点击事件
+// 使用正确的ID来获取技能菜单中的按钮
+const imageGenMenuButton = document.getElementById('imageGenMenuButton');
+const imageOcrMenuButton = document.getElementById('imageOcrMenuButton');
+const translationMenuButton = document.getElementById('translationMenuButton');
+
+if (imageGenMenuButton && imageGenMenuButton.closest('#skillMenu')) {
+  imageGenMenuButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    // 切换到图片生成模式或取消
+    if (activeSkillMode === 'imageGen') {
+      activeSkillMode = null;
+      showNotification('已取消图片生成模式');
+    } else {
+      activeSkillMode = 'imageGen';
+      showNotification('已切换到图片生成模式');
+    }
+    skillMenu.style.display = 'none';
+    document.removeEventListener('click', hideSkillMenu);
+    // 更新按钮状态
+    updateSkillButtonStates();
+    
+    // 保存技能状态
+    saveSkillState();
+  });
+}
+
+if (imageOcrMenuButton && imageOcrMenuButton.closest('#skillMenu')) {
+  imageOcrMenuButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    // 切换到OCR识别模式或取消
+    if (activeSkillMode === 'imageOcr') {
+      activeSkillMode = null;
+      showNotification('已取消OCR识别模式');
+    } else {
+      activeSkillMode = 'imageOcr';
+      showNotification('已切换到OCR识别模式');
+    }
+    skillMenu.style.display = 'none';
+    document.removeEventListener('click', hideSkillMenu);
+    // 更新按钮状态
+    updateSkillButtonStates();
+    
+    // 保存技能状态
+    saveSkillState();
+  });
+}
+
+if (translationMenuButton && translationMenuButton.closest('#skillMenu')) {
+  translationMenuButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    // 切换到翻译模式或取消
+    if (activeSkillMode === 'translation') {
+      activeSkillMode = null;
+      showNotification('已取消翻译模式');
+    } else {
+      activeSkillMode = 'translation';
+      showNotification('已切换到翻译模式');
+    }
+    skillMenu.style.display = 'none';
+    document.removeEventListener('click', hideSkillMenu);
+    // 更新按钮状态
+    updateSkillButtonStates();
+    
+    // 保存技能状态
+    saveSkillState();
+  });
+}
+
+// 显示通知的函数
+function showNotification(message) {
+  // 创建通知元素
+  const notification = document.createElement('div');
+  notification.className = 'voice-input-alert';
+  notification.textContent = message;
+  
+  // 添加样式
+  notification.style.position = 'fixed';
+  notification.style.top = '20px';
+  notification.style.right = '20px';
+  notification.style.backgroundColor = '#28a745';
+  notification.style.color = 'white';
+  notification.style.padding = '15px 20px';
+  notification.style.borderRadius = '8px';
+  notification.style.zIndex = '10000';
+  notification.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+  notification.style.maxWidth = '400px';
+  notification.style.wordWrap = 'break-word';
+  
+  // 添加到页面
+  document.body.appendChild(notification);
+  
+  // 3秒后自动移除
+  setTimeout(() => {
+    if (notification.parentNode) {
+      notification.parentNode.removeChild(notification);
+    }
+  }, 3000);
+}
+
+// 显示新年祝福
+function showNewYearGreeting() {
+  // 新年祝福消息
+  const newYearMessage = '🎉 新年快乐！祝您在新的一年里万事如意，AI助手将一如既往地为您服务！';
+  
+  // 添加到聊天历史
+  addMessageToHistory(newYearMessage, false);
+}
+
+// 检查是否应该显示新年祝福
+function shouldShowNewYearGreeting() {
+  // 对于新年版本，总是显示祝福
+  return true;
+}
+
+// 获取雪花特效设置
+function getSnowSetting() {
+  // 从本地存储获取设置，如果不存在则默认为true（启用）
+  const settings = localStorage.getItem('xiaor-settings');
+  if (settings) {
+    const parsedSettings = JSON.parse(settings);
+    return parsedSettings.snowEnabled !== undefined ? parsedSettings.snowEnabled : true;
+  }
+  return true; // 默认启用
+}
+
+// 保存雪花特效设置
+function saveSnowSetting(enabled) {
+  // 获取现有设置
+  let settings = {};
+  const existingSettings = localStorage.getItem('xiaor-settings');
+  if (existingSettings) {
+    settings = JSON.parse(existingSettings);
+  }
+  
+  // 更新雪花设置
+  settings.snowEnabled = enabled;
+  
+  // 保存设置
+  localStorage.setItem('xiaor-settings', JSON.stringify(settings));
+}
+
+// 添加新年特效
+function addNewYearEffects() {
+  // 检查是否启用雪花特效
+  const snowEnabled = getSnowSetting();
+  
+  // 创建爆竹元素
+  const firecrackerContainer = document.createElement('div');
+  firecrackerContainer.id = 'firecracker-container';
+  firecrackerContainer.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 10000;
+    pointer-events: none;
+    user-select: none;
+  `;
+  
+  // 添加爆竹图标
+  const firecracker = document.createElement('div');
+  firecracker.innerHTML = '🧨';
+  firecracker.style.cssText = `
+    font-size: 30px;
+    animation: firecracker-dance 2s ease-in-out infinite alternate;
+    cursor: pointer;
+    user-select: none;
+  `;
+  
+  // 添加爆竹动画
+  const firecrackerStyle = document.createElement('style');
+  firecrackerStyle.textContent = `
+    @keyframes firecracker-dance {
+      0% { transform: translateY(0) rotate(-5deg); }
+      100% { transform: translateY(-10px) rotate(5deg); }
+    }
+  `;
+  document.head.appendChild(firecrackerStyle);
+  
+  // 点击爆竹产生烟花效果
+  firecracker.addEventListener('click', function(event) {
+    createFireworkEffect(event.clientX, event.clientY);
+  });  
+  
+  firecrackerContainer.appendChild(firecracker);
+  document.body.appendChild(firecrackerContainer);
+  
+  // 只有在启用雪花特效时才创建雪花
+  if (snowEnabled) {
+    // 创建雪花容器
+    const snowContainer = document.createElement('div');
+    snowContainer.id = 'snow-container';
+    snowContainer.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 9999;
+      overflow: hidden;
+      user-select: none;
+    `;
+    document.body.appendChild(snowContainer);
+    
+    // 创建雪花
+    function createSnow() {
+      const snow = document.createElement('div');
+      // 使用雪花符号
+      snow.innerHTML = '❄';
+      snow.style.cssText = `
+        position: absolute;
+        color: #e0f7fa;
+        font-size: ${Math.random() * 10 + 10}px;
+        left: ${Math.random() * 100}vw;
+        top: -20px;
+        opacity: ${Math.random() * 0.5 + 0.5};
+        animation: fall ${Math.random() * 5 + 5}s linear infinite;
+        pointer-events: none;
+        user-select: none;
+      `;
+      
+      snowContainer.appendChild(snow);
+      
+      // 雪花移除
+      setTimeout(() => {
+        if (snow.parentNode) {
+          snow.parentNode.removeChild(snow);
+        }
+      }, 10000);
+    }
+    
+    // 定期创建雪花
+    setInterval(createSnow, 300);
+    
+    // 添加雪花动画样式
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes fall {
+        to {
+          transform: translateY(105vh) rotate(${Math.random() * 360}deg);
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+}
+  
+  // 创建烟花效果
+  function createFireworkEffect(x, y) {
+    // 创建烟花容器
+    const fireworkContainer = document.createElement('div');
+    fireworkContainer.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10001;
+      overflow: hidden;
+      user-select: none;
+    `;
+    document.body.appendChild(fireworkContainer);
+    
+    // 创建多个烟花粒子
+    for (let i = 0; i < 50; i++) {
+      const particle = document.createElement('div');
+      const angle = Math.random() * Math.PI * 2;
+      const distance = Math.random() * 100 + 50;
+      const size = Math.random() * 6 + 2;
+      const colors = ['#ff5722', '#ff9800', '#ffeb3b', '#4caf50', '#2196f3', '#9c27b0', '#e91e63'];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      
+      particle.style.cssText = `
+        position: absolute;
+        width: ${size}px;
+        height: ${size}px;
+        background-color: ${color};
+        border-radius: 50%;
+        left: ${x}px;
+        top: ${y}px;
+        opacity: 1;
+        box-shadow: 0 0 10px ${color};
+        user-select: none;
+        pointer-events: none;
+      `;
+      
+      fireworkContainer.appendChild(particle);
+      
+      // 使用CSS动画实现烟花爆炸效果
+      const animation = particle.animate([
+        { 
+          transform: `translate(0, 0)`,
+          opacity: 1
+        },
+        { 
+          transform: `translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px)`,
+          opacity: 0
+        }
+      ], {
+        duration: Math.random() * 1000 + 1500,
+        easing: 'cubic-bezier(0, .9, .57, 1)'
+      });
+      
+      // 动画结束后移除粒子
+      animation.onfinish = () => {
+        if (particle.parentNode) {
+          particle.parentNode.removeChild(particle);
+        }
+      };
+    }
+    
+    // 烟花容器在一段时间后移除
+    setTimeout(() => {
+      if (fireworkContainer.parentNode) {
+        fireworkContainer.parentNode.removeChild(fireworkContainer);
+      }
+    }, 2000);
+  }
+
+
+// 添加新年按钮装饰
+function addNewYearButtonEffects() {
+  // 获取所有按钮元素
+  const buttons = document.querySelectorAll('button');
+  
+  // 为每个按钮添加新年装饰
+  buttons.forEach(button => {
+    // 添加新年边框光效
+    button.style.transition = 'all 0.3s ease';
+    
+    // 添加新年装饰图标
+    if (!button.querySelector('.new-year-deco')) {
+      const deco = document.createElement('span');
+      deco.className = 'new-year-deco';
+      deco.innerHTML = '🎉';
+      deco.style.cssText = `
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        font-size: 16px;
+        opacity: 0;
+        transition: all 0.3s ease;
+        pointer-events: none;
+        z-index: 10000;
+      `;
+      
+      // 确保按钮有相对定位以便装饰图标正确定位，但不影响现有布局
+      const computedStyle = window.getComputedStyle(button);
+      if (computedStyle.position !== 'relative' && computedStyle.position !== 'absolute') {
+        button.style.position = 'relative';
+      }
+      
+      button.appendChild(deco);
+    }
+    
+    // 鼠标悬停效果
+    button.addEventListener('mouseenter', () => {
+      // 仅对非语音输入按钮应用阴影效果，避免影响布局
+      if (button.id !== 'voiceInputButton' && button.id !== 'inline-voice-btn') {
+        button.style.boxShadow = '0 0 15px rgba(255, 215, 0, 0.5), inset 0 0 15px rgba(255, 215, 0, 0.2)';
+      }
+      
+      // 显示装饰图标
+      const deco = button.querySelector('.new-year-deco');
+      if (deco) {
+        deco.style.opacity = '1';
+        deco.style.transform = 'scale(1.2)';
+      }
+    });
+    
+    button.addEventListener('mouseleave', () => {
+      // 移除阴影效果
+      button.style.boxShadow = '';
+      
+      // 隐藏装饰图标
+      const deco = button.querySelector('.new-year-deco');
+      if (deco) {
+        deco.style.opacity = '0';
+        deco.style.transform = 'scale(1)';
+      }
+    });
+    
+    // 添加点击波纹效果（但不影响语音输入按钮）
+    button.addEventListener('mousedown', () => {
+      if (button.id !== 'voiceInputButton' && button.id !== 'inline-voice-btn') {
+        button.style.transform = 'scale(0.95)';
+      }
+    });
+    
+    button.addEventListener('mouseup', () => {
+      button.style.transform = 'scale(1)';
+    });
+  });
+}
+
 // 初始化欢迎消息
 document.addEventListener('DOMContentLoaded', async () => {
+  // 显示新年祝福
+  if (shouldShowNewYearGreeting()) {
+    showNewYearGreeting();
+  }
+  
+  // 添加新年特效
+  addNewYearEffects();
+  
+  // 添加新年按钮装饰
+  addNewYearButtonEffects();
+  
+  // 尝试从本地加载技能状态
+  loadSkillState();
+  
+  // 设置雪花特效切换监听器
+  const snowToggle = document.getElementById('snowToggle');
+  if (snowToggle) {
+    // 初始化时设置复选框状态
+    snowToggle.checked = getSnowSetting();
+    
+    // 添加事件监听器
+    snowToggle.addEventListener('change', function() {
+      saveSnowSetting(this.checked);
+      
+      // 重新加载新年特效以应用更改
+      const snowContainer = document.getElementById('snow-container');
+      if (snowContainer) {
+        snowContainer.remove();
+      }
+      
+      // 重新添加新年特效
+      addNewYearEffects();
+    });
+  }
+  
   // 尝试从本地加载所有对话
   try {
     allConversations = await window.electronAPI.loadAllConversations();
@@ -414,6 +1154,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // 更新对话列表显示
     updateChatListDisplay();
+    
+    // 确保技能按钮状态正确显示
+    updateSkillButtonStates();
   } catch (error) {
     console.error('加载对话失败:', error);
     
@@ -426,55 +1169,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // 更新对话列表显示
     updateChatListDisplay();
+    
+    // 确保技能按钮状态正确显示
+    updateSkillButtonStates();
   }
 });
 
-/*
-  爱心点击特效API
-  描述：网站js装饰，点击出现彩色爱心
-  请求URL：https://api.jkyai.top/API/js/love.js
-  请求方法：GET/POST
-  必填参数：无
-  可选参数：无
-  返回格式：JS
- */
-
-// 引入爱心点击特效API的JS文件
-function loadLoveEffect() {
-  // 创建script标签
-  const script = document.createElement('script');
-  script.src = 'https://api.jkyai.top/API/js/love.js';
-  script.type = 'text/javascript';
-  
-  // 监听加载完成事件
-  script.onload = function() {
-    console.log('爱心点击特效加载成功！');
-  };
-  
-  // 监听加载失败事件
-  script.onerror = function() {
-    console.error('爱心点击特效加载失败，请检查网络连接或API地址是否正确。');
-  };
-  
-  // 将script标签插入到页面中
-  document.body.appendChild(script);
-}
-
-// 调用函数加载特效
-loadLoveEffect();
-
-// 可选参数：自定义爱心特效样式（示例，可根据需要取消注释）
-/*
-const customLoveStyle = {
-  heartColor: 'rgba(255, 0, 0, 0.5)', // 爱心颜色
-  heartSize: '30px', // 爱心大小
-  heartSpeed: 'slow', // 爱心动画速度
-  heartCount: 5 // 爱心数量
-};
-
-// 将自定义样式应用到特效（需要API支持该参数）
-loadLoveEffect(customLoveStyle);
-*/
 
 // 错误提示信息
 const errorMessages = {
@@ -484,62 +1184,13 @@ const errorMessages = {
 };
 
 // 语音输入功能
-let recognition;
 let isListening = false;
 
 // 初始化语音识别
 function initSpeechRecognition() {
-  // 检查浏览器是否支持语音识别API
-  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-    showVoiceInputError('您的浏览器不支持语音识别功能，请使用Chrome浏览器或更新浏览器版本。');
-    return false;
-  }
-  
-  try {
-    // 创建语音识别实例
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    recognition = new SpeechRecognition();
-    recognition.continuous = false;  // 不连续识别
-    recognition.interimResults = true;  // 显示临时结果
-    recognition.lang = 'zh-CN';  // 设置语言为中文
-    
-    // 识别结果事件
-    recognition.onresult = function(event) {
-      let transcript = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
-          transcript += event.results[i][0].transcript;
-        }
-      }
-      
-      if (transcript) {
-        // 将识别结果插入到输入框
-        userInput.value += transcript;
-        console.log('语音识别结果:', transcript);
-      }
-    };
-    
-    // 识别错误事件
-    recognition.onerror = function(event) {
-      console.error('语音识别错误:', event.error);
-      showVoiceInputError(`语音识别出错: ${getRecognitionErrorMessage(event.error)}`);
-      isListening = false;
-      updateVoiceInputButton();
-    };
-    
-    // 识别结束事件
-    recognition.onend = function() {
-      console.log('语音识别结束');
-      isListening = false;
-      updateVoiceInputButton();
-    };
-    
-    return true;
-  } catch (error) {
-    console.error('初始化语音识别失败:', error);
-    showVoiceInputError('初始化语音识别功能失败，请检查浏览器设置。');
-    return false;
-  }
+  // 在桌面版Electron应用中，我们使用原生语音识别，不需要初始化Web Speech API
+  console.log('桌面版语音识别已准备，使用原生功能');
+  return true;
 }
 
 // 获取语音识别错误信息
@@ -589,42 +1240,20 @@ function showVoiceInputError(message) {
   }, 3000);
 }
 
-// 开始语音识别
+// 开始语音识别 - 此函数保留用于未来网页版兼容
 function startVoiceRecognition() {
-  if (!recognition) {
-    if (!initSpeechRecognition()) {
-      return;
-    }
-  }
-  
-  try {
-    recognition.start();
-    isListening = true;
-    updateVoiceInputButton();
-    console.log('开始语音识别');
-  } catch (error) {
-    console.error('启动语音识别失败:', error);
-    showVoiceInputError('启动语音识别失败，请检查麦克风权限。');
-  }
+  console.log('网页版语音识别功能');
 }
 
-// 停止语音识别
+// 停止语音识别 - 此函数保留用于未来网页版兼容
 function stopVoiceRecognition() {
-  if (recognition && isListening) {
-    recognition.stop();
-    isListening = false;
-    updateVoiceInputButton();
-    console.log('停止语音识别');
-  }
+  console.log('停止网页版语音识别');
 }
 
 // 切换语音识别状态
 function toggleVoiceRecognition() {
-  if (isListening) {
-    stopVoiceRecognition();
-  } else {
-    startVoiceRecognition();
-  }
+  // 在桌面版中，始终使用Electron原生语音识别
+  startElectronVoiceRecognition();
 }
 
 // 更新语音输入按钮状态
@@ -644,6 +1273,34 @@ function updateVoiceInputButton() {
 
 // 初始化语音识别功能
 initSpeechRecognition();
+
+// Electron环境下的语音识别函数
+async function startElectronVoiceRecognition() {
+  try {
+    // 显示正在识别的提示
+    console.log('正在启动语音识别...');
+    showVoiceInputError('正在识别语音...');
+    
+    // 调用Electron主进程的语音识别功能
+    const result = await window.electronAPI.startVoiceRecognition();
+    
+    if (result && result !== '语音识别功能仅支持Windows系统') {
+      // 将识别结果插入到输入框
+      userInput.value += result;
+      console.log('语音识别结果:', result);
+      
+      // 隐藏错误提示
+      const alertBoxes = document.querySelectorAll('.voice-input-alert');
+      alertBoxes.forEach(box => box.remove());
+    } else {
+      // 显示错误信息
+      showVoiceInputError(result || '语音识别失败或未检测到语音');
+    }
+  } catch (error) {
+    console.error('语音识别错误:', error);
+    showVoiceInputError('语音识别过程中发生错误');
+  }
+}
 
 // 播放AI语音回复
 async function playAIVoice(text) {
@@ -750,13 +1407,22 @@ function loadSettings() {
     // 应用AI模型设置
     if (settings.aiModel) {
       aiModelSelect.value = settings.aiModel;
+      // 显示或隐藏自定义模型设置
+      if (settings.aiModel === 'custom' && settings.customModelUrl) {
+        customModelSettings.style.display = 'block';
+        customModelUrl.value = settings.customModelUrl;
+      } else {
+        customModelSettings.style.display = 'none';
+      }
     } else {
       aiModelSelect.value = 'deepseek'; // 默认为Deepseek
+      customModelSettings.style.display = 'none';
     }
   } else {
     // 默认设置
     voiceToggle.checked = true;
     aiModelSelect.value = 'deepseek'; // 默认为Deepseek
+    customModelSettings.style.display = 'none';
   }
 }
 
@@ -768,6 +1434,11 @@ function saveSettings() {
     voiceEnabled: voiceToggle.checked,
     aiModel: aiModelSelect.value
   };
+  
+  // 如果是自定义模型，保存自定义模型URL
+  if (aiModelSelect.value === 'custom') {
+    settings.customModelUrl = customModelUrl.value;
+  }
   
   localStorage.setItem('xiaor-settings', JSON.stringify(settings));
   
@@ -784,6 +1455,15 @@ function saveSettings() {
 // 设置面板事件监听器
 settingsButton.addEventListener('click', () => {
   settingsPanel.classList.add('active');
+});
+
+// AI模型选择变化事件监听器
+aiModelSelect.addEventListener('change', () => {
+  if (aiModelSelect.value === 'custom') {
+    customModelSettings.style.display = 'block';
+  } else {
+    customModelSettings.style.display = 'none';
+  }
 });
 
 saveSettingsButton.addEventListener('click', () => {
@@ -846,8 +1526,18 @@ async function generateConversationTitle(conversationId) {
   
   try {
     // 构建请求数据，让AI为对话生成一个简短标题
-    const firstUserMessage = conversation.history.find(item => item.role === 'user');
-    const firstAIMessage = conversation.history.find(item => item.role === 'assistant');
+    // 过滤掉包含 XiaoR://Showimage 和 * 的消息
+    const firstUserMessage = conversation.history.find(item => 
+      item.role === 'user' && 
+      !item.content.includes('XiaoR://Showimage') && 
+      !item.content.includes('*')
+    );
+    
+    const firstAIMessage = conversation.history.find(item => 
+      item.role === 'assistant' && 
+      !item.content.includes('XiaoR://Showimage') && 
+      !item.content.includes('*')
+    );
     
     if (!firstUserMessage || !firstAIMessage) return;
     
@@ -914,15 +1604,17 @@ loadSettings();
 
 // 新对话功能
 function startNewChat() {
-  // 清空对话历史
-  conversationHistory = [];
+  // 创建新对话
+  const newId = createNewConversation();
+  switchToConversation(newId);
   
-  // 清空聊天历史显示区域
-  chatHistory.innerHTML = '';
+  // 显示新年祝福
+  if (shouldShowNewYearGreeting()) {
+    showNewYearGreeting();
+  }
   
-  // 保存清空的对话历史到本地
-  window.electronAPI.saveConversationHistory(conversationHistory)
-    .catch(error => console.error('保存清空的对话历史失败:', error));
+  // 显示欢迎消息
+  addMessageToHistory('您好！我是小R AI助手，有什么可以帮助您的吗？', false);
   
   console.log('已开始新对话');
 }
@@ -1158,6 +1850,9 @@ function handleImageGeneration() {
   
   // 更新按钮状态
   updateSkillButtonStates();
+  
+  // 保存技能状态
+  saveSkillState();
 }
 
 // 图片OCR功能
@@ -1173,6 +1868,9 @@ function handleImageOCR() {
   
   // 更新按钮状态
   updateSkillButtonStates();
+  
+  // 保存技能状态
+  saveSkillState();
 }
 
 // 更新技能按钮状态
@@ -1200,6 +1898,31 @@ function updateSkillButtonStates() {
       translationButton.classList.remove('active-skill');
     }
   }
+  
+  // 同时更新技能菜单按钮的状态
+  if (imageGenMenuButton) {
+    if (activeSkillMode === 'imageGen') {
+      imageGenMenuButton.classList.add('active-skill');
+    } else {
+      imageGenMenuButton.classList.remove('active-skill');
+    }
+  }
+  
+  if (imageOcrMenuButton) {
+    if (activeSkillMode === 'imageOcr') {
+      imageOcrMenuButton.classList.add('active-skill');
+    } else {
+      imageOcrMenuButton.classList.remove('active-skill');
+    }
+  }
+  
+  if (translationMenuButton) {
+    if (activeSkillMode === 'translation') {
+      translationMenuButton.classList.add('active-skill');
+    } else {
+      translationMenuButton.classList.remove('active-skill');
+    }
+  }
 }
 
 // 翻译功能
@@ -1215,6 +1938,9 @@ function handleTranslation() {
   
   // 更新按钮状态
   updateSkillButtonStates();
+  
+  // 保存技能状态
+  saveSkillState();
 }
 
 // 为图片生成按钮添加点击事件监听器
@@ -1233,24 +1959,4 @@ if (translationButton) {
 }
 
 // 新对话功能
-function startNewChat() {
-  // 创建新对话
-  const newId = createNewConversation();
-  
-  // 切换到新对话
-  switchToConversation(newId);
-  
-  console.log('已开始新对话');
-}
-
-
-
-
-
-
-
-
-
-
-
 

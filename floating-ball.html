@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      overflow: hidden;
+    }
+    .ball {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      user-select: none;
+      position: relative;
+      overflow: hidden;
+      z-index: 9999;
+    }
+    .ball:hover {
+      background: linear-gradient(145deg, #357ae8, #2a6ac5);
+    }
+    .ball:active {
+      transform: scale(0.95);
+    }
+    .ball {
+      -webkit-user-drag: none;
+      -webkit-app-region: no-drag;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="ball">
+    <img src="floating-ball-icon.png" alt="App Icon" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; -webkit-user-drag: none;">
+  </div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+    
+    /* 添加点击事件监听器日志 */
+    document.addEventListener('DOMContentLoaded', function() {
+      const ball = document.querySelector('.ball');
+      if (ball) {
+        ball.addEventListener('click', function(event) {
+          console.log('悬浮球点击事件触发，事件目标:', event.target, '事件当前目标:', event.currentTarget);
+          // 发送消息到主进程，表示悬浮球被点击
+          ipcRenderer.send('floating-ball-clicked');
+        });
+        
+        ball.addEventListener('mousedown', function() {
+          console.log('悬浮球鼠标按下事件触发');
+        });
+        
+        ball.addEventListener('mouseup', function() {
+          console.log('悬浮球鼠标释放事件触发');
+        });
+      }
+    });
+    
+    // 添加DevTools快捷键支持
+    document.addEventListener('keydown', function(event) {
+      // 检测 Ctrl+Shift+I 或 F12 组合键
+      if ((event.ctrlKey && event.shiftKey && event.key === 'I') || 
+          (event.key === 'F12')) {
+        event.preventDefault();
+        if (window.require) {
+          const { remote } = require('electron');
+          const webContents = remote.getCurrentWebContents();
+          webContents.openDevTools();
+        }
+      }
+    });
+    
+    /* 初始化：从主程序读取设置（暂时废弃）
+    function initializeSettings() {
+      // 从本地存储获取设置
+      const savedSettings = localStorage.getItem('xiaor-settings');
+      if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        console.log('已从主程序读取设置:', settings);
+      }
+    }
+    
+    // 迷你对话框功能
+    function toggleMiniChat() {
+      console.log('toggleMiniChat函数被调用');
+      const miniChat = document.getElementById('miniChat');
+      const ball = document.querySelector('.ball');
+      
+      // 获取悬浮球的位置
+      const ballRect = ball.getBoundingClientRect();
+      console.log('悬浮球位置:', ballRect);
+      
+      // 设置迷你对话框的顶部位置与悬浮球对齐
+      miniChat.style.top = ballRect.top + 'px';
+      console.log('设置对话框顶部位置: top=' + miniChat.style.top);
+      
+      console.log('切换前对话框display状态:', getComputedStyle(miniChat).display);
+      console.log('切换前对话框transform状态:', getComputedStyle(miniChat).transform);
+      
+      miniChat.classList.toggle('expanded');
+      console.log('对话框expanded类切换，当前状态:', miniChat.classList.contains('expanded'));
+      
+      // 如果是展开状态，聚焦到输入框
+      if (miniChat.classList.contains('expanded')) {
+        console.log('对话框处于展开状态，聚焦到输入框');
+        document.getElementById('userInput').focus();
+      } else {
+        console.log('对话框处于收起状态');
+      }
+      
+      console.log('切换后对话框display状态:', getComputedStyle(miniChat).display);
+      console.log('切换后对话框transform状态:', getComputedStyle(miniChat).transform);
+    }
+    
+    function closeMiniChat() {
+      const miniChat = document.getElementById('miniChat');
+      miniChat.classList.remove('expanded');
+    }
+    
+    function sendMessage() {
+      const input = document.getElementById('userInput');
+      const message = input.value.trim();
+      
+      if (message) {
+        const chatBody = document.getElementById('chatBody');
+        
+        // 添加用户消息
+        const userMessage = document.createElement('div');
+        userMessage.textContent = '我: ' + message;
+        userMessage.style.textAlign = 'right';
+        userMessage.style.marginBottom = '10px';
+        userMessage.style.padding = '5px 10px';
+        userMessage.style.backgroundColor = '#4a90e2';
+        userMessage.style.color = 'white';
+        userMessage.style.borderRadius = '10px';
+        userMessage.style.display = 'inline-block';
+        userMessage.style.maxWidth = '80%';
+        userMessage.style.float = 'right';
+        chatBody.appendChild(userMessage);
+        
+        // 清空输入框
+        input.value = '';
+        
+        // 滚动到底部
+        chatBody.scrollTop = chatBody.scrollHeight;
+        
+        // 添加“正在思考”消息
+        const thinkingMessage = document.createElement('div');
+        thinkingMessage.id = 'thinkingMessage';
+        thinkingMessage.textContent = '小R: 正在思考...';
+        thinkingMessage.style.textAlign = 'left';
+        thinkingMessage.style.marginBottom = '10px';
+        thinkingMessage.style.padding = '5px 10px';
+        thinkingMessage.style.backgroundColor = '#e0e0e0';
+        thinkingMessage.style.borderRadius = '10px';
+        thinkingMessage.style.display = 'inline-block';
+        thinkingMessage.style.maxWidth = '80%';
+        thinkingMessage.style.float = 'left';
+        chatBody.appendChild(thinkingMessage);
+        
+        // 滚动到底部
+        chatBody.scrollTop = chatBody.scrollHeight;
+        
+        // 调用AI API
+        callAI(message);
+      }
+    }
+    
+    // 调用AI API的函数
+    async function callAI(question) {
+      const chatBody = document.getElementById('chatBody');
+      
+      try {
+        // 从本地存储获取当前设置
+        const savedSettings = localStorage.getItem('xiaor-settings');
+        let aiModel = 'deepseek'; // 默认为Deepseek
+        let settings = null; // 定义settings变量
+        
+        if (savedSettings) {
+          settings = JSON.parse(savedSettings);
+          aiModel = settings.aiModel || 'deepseek';
+        }
+        
+        // 根据AI模型选择API端点
+        let apiEndpoint = 'https://api.jkyai.top/API/depsek3.2.php'; // 默认为Deepseek
+        if (aiModel === 'claude') {
+          apiEndpoint = 'https://api.jkyai.top/API/doubao.php'; // 豆包
+        } else if (aiModel === 'yuanbao') {
+          apiEndpoint = 'https://api.jkyai.top/API/yuanbao.php'; // 腾讯元宝
+        } else if (aiModel === 'qwen3') {
+          apiEndpoint = 'https://api.jkyai.top/API/qwen3.php'; // Qwen3
+        } else if (aiModel === 'custom') {
+          // 自定义模型：从设置中获取API URL
+          if (settings && settings.customModelUrl) {
+            apiEndpoint = settings.customModelUrl;
+          }
+        }
+        
+        // 构建请求数据
+        const requestData = {
+          ques: question,
+          system: '你是Ruanm开发的小R-Ai助手，专注于帮用户解决各种难题、聊天。',
+          apiEndpoint: apiEndpoint
+        };
+        
+        // 通过 Electron API 发送请求
+        const response = await window.electronAPI.sendAIRequest(requestData);
+        
+        // 移除“正在思考”消息
+        const thinkingMessage = document.getElementById('thinkingMessage');
+        if (thinkingMessage) {
+          thinkingMessage.remove();
+        }
+        
+        // 添加AI回复
+        const aiMessage = document.createElement('div');
+        aiMessage.textContent = '小R: ' + response;
+        aiMessage.style.textAlign = 'left';
+        aiMessage.style.marginBottom = '10px';
+        aiMessage.style.padding = '5px 10px';
+        aiMessage.style.backgroundColor = '#e0e0e0';
+        aiMessage.style.borderRadius = '10px';
+        aiMessage.style.display = 'inline-block';
+        aiMessage.style.maxWidth = '80%';
+        aiMessage.style.float = 'left';
+        chatBody.appendChild(aiMessage);
+        
+        // 滚动到底部
+        chatBody.scrollTop = chatBody.scrollHeight;
+      } catch (error) {
+        // 移除“正在思考”消息
+        const thinkingMessage = document.getElementById('thinkingMessage');
+        if (thinkingMessage) {
+          thinkingMessage.remove();
+        }
+        
+        // 显示错误消息
+        const errorMessage = document.createElement('div');
+        errorMessage.textContent = '小R: 请求失败 - ' + error.message;
+        errorMessage.style.textAlign = 'left';
+        errorMessage.style.marginBottom = '10px';
+        errorMessage.style.padding = '5px 10px';
+        errorMessage.style.backgroundColor = '#ff6b6b';
+        errorMessage.style.color = 'white';
+        errorMessage.style.borderRadius = '10px';
+        errorMessage.style.display = 'inline-block';
+        errorMessage.style.maxWidth = '80%';
+        errorMessage.style.float = 'left';
+        chatBody.appendChild(errorMessage);
+        
+        // 滚动到底部
+        chatBody.scrollTop = chatBody.scrollHeight;
+      }
+    }
+    
+    function handleKeyPress(event) {
+      if (event.key === 'Enter') {
+        sendMessage();
+      }
+    }
+    */
+    
+    // 窗口拖拽功能
+    let isDragging = false;
+    let offsetX, offsetY;
+    
+    const ball = document.querySelector('.ball');
+    
+    ball.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      offsetX = e.offsetX;
+      offsetY = e.offsetY;
+      
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    });
+    
+    function onMouseMove(e) {
+      if (!isDragging) return;
+      
+      const x = e.screenX - offsetX;
+      const y = e.screenY - offsetY;
+      
+      if (window.require) {
+        const { ipcRenderer } = require('electron');
+        ipcRenderer.send('move-floating-ball', x, y);
+      }
+    }
+    
+    function onMouseUp() {
+      isDragging = false;
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    }
+    
+    // 点击非对话框区域关闭对话框
+    document.addEventListener('click', (event) => {
+      const miniChat = document.getElementById('miniChat');
+      const ball = document.querySelector('.ball');
+      
+      if (miniChat.classList.contains('expanded') && 
+          !miniChat.contains(event.target) && 
+          !ball.contains(event.target)) {
+        closeMiniChat();
+      }
+    });
+  </script>
+</body>
+</html>

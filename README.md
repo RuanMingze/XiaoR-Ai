@@ -4,7 +4,7 @@
 
 ## 功能特性
 
-- **多AI模型支持**：支持DeepseekV3.1、豆包、腾讯元宝、Qwen3等多种AI模型
+- **多AI模型支持**：支持DeepseekV3.2、豆包、腾讯元宝、Qwen3等多种AI模型
 - **对话管理**：支持多轮对话、对话历史记录、对话标题自动生成
 - **技能模式**：
   - AI图片生成：根据描述生成图片
@@ -14,6 +14,12 @@
 - **主题切换**：支持深色/浅色主题
 - **上下文管理**：可设置对话历史上下文数量
 - **数据清除**：一键清除所有数据功能
+- **新年特效**（v1.0.1）：
+  - 雪花特效：营造节日氛围
+  - 爆竹动画：可点击触发烟花效果
+  - 按钮装饰：增加节日元素
+  - 新年祝福：自动显示新年祝福
+  - 特效开关：可设置开启或关闭雪花特效
 
 ## 安装与运行
 
@@ -63,7 +69,7 @@
 ## API接口
 
 应用使用以下API接口：
-- DeepseekV3.1: https://api.jkyai.top/API/depsek3.1.php
+- DeepseekV3.2: https://api.jkyai.top/API/depsek3.2.php
 - 豆包: https://api.jkyai.top/API/doubao.php
 - 腾讯元宝: https://api.jkyai.top/API/yuanbao.php
 - Qwen3: https://api.jkyai.top/API/qwen3.php

@@ -7,4 +7,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   loadConversationHistory: () => ipcRenderer.invoke('load-conversation-history'),
   saveAllConversations: (conversations) => ipcRenderer.invoke('save-all-conversations', conversations),
   loadAllConversations: () => ipcRenderer.invoke('load-all-conversations'),
+  startVoiceRecognition: () => ipcRenderer.invoke('start-voice-recognition'),
+  moveFloatingBall: (x, y) => ipcRenderer.send('move-floating-ball', x, y),
 });
