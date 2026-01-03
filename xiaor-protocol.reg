@@ -1,0 +1,18 @@
+Windows Registry Editor Version 5.00
+
+; 注册xiaor协议处理程序 - 小R助手 (https://github.com/RuanMingze/XiaoR-Ai)
+[HKEY_CLASSES_ROOT\xiaor]
+@="URL:xiaor Protocol"
+"URL Protocol"=""
+
+; 设置默认图标
+[HKEY_CLASSES_ROOT\xiaor\DefaultIcon]
+@=""
+
+; 设置协议处理命令
+[HKEY_CLASSES_ROOT\xiaor\shell]
+
+[HKEY_CLASSES_ROOT\xiaor\shell\open]
+
+[HKEY_CLASSES_ROOT\xiaor\shell\open\command]
+@=""
