@@ -113,24 +113,132 @@
             statusDiv.innerHTML = '<span class="loading"></span>正在启动主程序...';
             messageDiv.textContent = '正在通过自定义协议启动小R助手';
             
-            // 构建自定义协议URL，包含用户信息
-            let customProtocolUrl = `xiaor://github-auth?code=${encodeURIComponent(code)}`;
+            // 由于GitHub直接回调到这里，我们需要通过后端服务器获取用户信息
+            // 先显示加载状态
+            statusDiv.innerHTML = '<span class="loading"></span>正在获取用户信息...';
+            messageDiv.textContent = '正在通过后端服务器获取用户信息';
             
-            if (state) {
-                customProtocolUrl += `&state=${encodeURIComponent(state)}`;
-            }
-            if (username) {
-                customProtocolUrl += `&username=${encodeURIComponent(username)}`;
-            }
-            if (name) {
-                customProtocolUrl += `&name=${encodeURIComponent(name)}`;
-            }
-            if (avatar) {
-                customProtocolUrl += `&avatar=${encodeURIComponent(avatar)}`;
-            }
-            if (email) {
-                customProtocolUrl += `&email=${encodeURIComponent(email)}`;
-            }
+            // 使用fetch请求后端服务器，交换授权码获取用户信息
+            fetch(`http://localhost:3000/auth/github/callback?code=${encodeURIComponent(code)}${state ? '&state=' + encodeURIComponent(state) : ''}`)
+            .then(response => response.text())
+            .then(data => {
+                // 服务器会返回一个重定向到自定义协议的响应
+                // 这里我们不需要处理响应，因为浏览器会自动处理重定向
+                console.log('服务器响应:', data);
+                
+                // 如果服务器没有自动触发协议，我们尝试手动触发
+                // 但首先需要从服务器获取完整的用户信息
+                // 由于服务器会重定向到协议URL，我们可能需要另一种方式获取数据
+                
+                // 创建一个隐藏的iframe来触发服务器请求，获取用户信息
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.src = `http://localhost:3000/auth/github/callback?code=${encodeURIComponent(code)}${state ? '&state=' + encodeURIComponent(state) : ''}`;
+                document.body.appendChild(iframe);
+                
+                // 等待一会儿，让服务器处理请求
+                setTimeout(() => {
+                    document.body.removeChild(iframe);
+                    
+                    // 尝试启动桌面应用
+                    // 由于服务器已经将用户信息编码在协议URL中，我们尝试直接使用
+                    // 但我们需要从服务器获取实际的用户信息
+                    
+                    // 为了处理这个问题，我们需要一个不同的方法
+                    // 创建一个临时服务器端点，它接收授权码并返回JSON格式的用户信息
+                    // 然后前端获取这些信息并通过自定义协议发送
+                    
+                    // 为了解决这个问题，我们将使用一个临时端点来获取用户信息而不触发重定向
+                    fetch(`http://localhost:3000/auth/github/fetch-user?code=${encodeURIComponent(code)}${state ? '&state=' + encodeURIComponent(state) : ''}`)
+                    .then(response => response.json())
+                    .then(userInfo => {
+                        if (userInfo && userInfo.code) {
+                            // 构建包含完整用户信息的自定义协议URL
+                            let customProtocolUrl = `xiaor://github-auth?code=${encodeURIComponent(userInfo.code)}`;
+                            
+                            if (userInfo.state) {
+                                customProtocolUrl += `&state=${encodeURIComponent(userInfo.state)}`;
+                            }
+                            if (userInfo.username) {
+                                customProtocolUrl += `&username=${encodeURIComponent(userInfo.username)}`;
+                            }
+                            if (userInfo.name) {
+                                customProtocolUrl += `&name=${encodeURIComponent(userInfo.name)}`;
+                            }
+                            if (userInfo.avatar) {
+                                customProtocolUrl += `&avatar=${encodeURIComponent(userInfo.avatar)}`;
+                            }
+                            if (userInfo.email) {
+                                customProtocolUrl += `&email=${encodeURIComponent(userInfo.email)}`;
+                            }
+                            
+                            // 尝试通过多种方式启动协议
+                            try {
+                                window.location.href = customProtocolUrl;
+                            } catch (e) {
+                                console.error('window.location方法失败:', e);
+                            }
+                            
+                            // 备用方法
+                            setTimeout(() => {
+                                const link = document.createElement('a');
+                                link.href = customProtocolUrl;
+                                link.style.display = 'none';
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                            }, 50);
+                            
+                            // 额外的备用方法
+                            setTimeout(() => {
+                                const iframe2 = document.createElement('iframe');
+                                iframe2.style.display = 'none';
+                                iframe2.src = customProtocolUrl;
+                                document.body.appendChild(iframe2);
+                                
+                                setTimeout(() => {
+                                    if (document.body.contains(iframe2)) {
+                                        document.body.removeChild(iframe2);
+                                    }
+                                }, 3000);
+                            }, 100);
+                            
+                            statusDiv.innerHTML = '<span class="success">✅ 已发送登录信息</span>';
+                            messageDiv.textContent = '如果小R助手未自动启动，请手动打开应用';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('获取用户信息失败:', error);
+                        
+                        // 如果无法获取完整用户信息，至少传递授权码
+                        let fallbackProtocolUrl = `xiaor://github-auth?code=${encodeURIComponent(code)}${state ? '&state=' + encodeURIComponent(state) : ''}`;
+                        
+                        try {
+                            window.location.href = fallbackProtocolUrl;
+                        } catch (e) {
+                            console.error('备用方法失败:', e);
+                        }
+                        
+                        statusDiv.innerHTML = '<span class="error">⚠️ 部分信息可能未传递</span>';
+                        messageDiv.textContent = '正在尝试使用基本认证信息';
+                    });
+                }, 1000); // 等待1秒让服务器处理
+            })
+            .catch(error => {
+                console.error('与服务器通信失败:', error);
+                
+                // 如果服务器不可用，至少尝试使用基本的授权码
+                let fallbackProtocolUrl = `xiaor://github-auth?code=${encodeURIComponent(code)}${state ? '&state=' + encodeURIComponent(state) : ''}`;
+                
+                try {
+                    window.location.href = fallbackProtocolUrl;
+                } catch (e) {
+                    console.error('备用方法失败:', e);
+                }
+                
+                statusDiv.innerHTML = '<span class="error">⚠️ 服务器连接失败</span>';
+                messageDiv.textContent = '服务器无法连接，正在尝试备用方法';
+            });
             
             // 显示协议URL（用于调试）
             console.log('尝试打开协议URL:', customProtocolUrl);
