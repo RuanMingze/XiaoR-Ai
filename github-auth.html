@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小R助手 - GitHub登录回调</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: white;
+            text-align: center;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+        }
+        
+        h1 {
+            margin-top: 0;
+            font-size: 1.8rem;
+        }
+        
+        .status {
+            margin: 1rem 0;
+            font-size: 1.1rem;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .success {
+            color: #4ade80;
+        }
+        
+        .error {
+            color: #f87171;
+        }
+        
+        .logo {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 1rem;
+        }
+        
+        .instructions {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="RuanmAi.png" alt="小R助手" class="logo">
+        <h1>小R助手</h1>
+        <div id="status" class="status">
+            <span class="loading"></span>
+            正在处理GitHub登录回调...
+        </div>
+        <p id="message">请稍候，正在启动主程序</p>
+        <div class="instructions" id="instructions">
+            如果页面停留太久，请确认已安装小R助手并尝试手动启动
+        </div>
+    </div>
+
+    <script>
+        // 从URL参数中提取GitHub OAuth回调信息
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const state = urlParams.get('state');
+        const username = urlParams.get('username');
+        const name = urlParams.get('name');
+        const avatar = urlParams.get('avatar');
+        const email = urlParams.get('email');
+        const error = urlParams.get('error');
+        
+        const statusDiv = document.getElementById('status');
+        const messageDiv = document.getElementById('message');
+        const instructionsDiv = document.getElementById('instructions');
+        
+        if (error) {
+            // 如果有错误，显示错误信息
+            statusDiv.innerHTML = `<span class="error">❌ 登录失败</span>`;
+            messageDiv.textContent = `错误: ${error}`;
+            instructionsDiv.textContent = '请返回重试或联系开发者';
+            console.error('GitHub OAuth error:', error);
+        } else if (code) {
+            // 如果有code参数，尝试启动主程序
+            statusDiv.innerHTML = '<span class="loading"></span>正在启动主程序...';
+            messageDiv.textContent = '正在通过自定义协议启动小R助手';
+            
+            // 构建自定义协议URL，包含用户信息
+            let customProtocolUrl = `xiaor://github-auth?code=${encodeURIComponent(code)}`;
+            
+            if (state) {
+                customProtocolUrl += `&state=${encodeURIComponent(state)}`;
+            }
+            if (username) {
+                customProtocolUrl += `&username=${encodeURIComponent(username)}`;
+            }
+            if (name) {
+                customProtocolUrl += `&name=${encodeURIComponent(name)}`;
+            }
+            if (avatar) {
+                customProtocolUrl += `&avatar=${encodeURIComponent(avatar)}`;
+            }
+            if (email) {
+                customProtocolUrl += `&email=${encodeURIComponent(email)}`;
+            }
+            
+            // 显示协议URL（用于调试）
+            console.log('尝试打开协议URL:', customProtocolUrl);
+            
+            // 首先尝试使用window.location
+            try {
+                window.location.href = customProtocolUrl;
+            } catch (e) {
+                console.error('window.location方法失败:', e);
+            }
+            
+            // 备用方法：创建一个隐藏的iframe来触发自定义协议
+            setTimeout(() => {
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.src = customProtocolUrl;
+                document.body.appendChild(iframe);
+                
+                // 3秒后移除iframe
+                setTimeout(() => {
+                    if (document.body.contains(iframe)) {
+                        document.body.removeChild(iframe);
+                    }
+                }, 3000);
+            }, 100);
+            
+            // 额外的备用方法：使用a标签点击
+            setTimeout(() => {
+                const link = document.createElement('a');
+                link.href = customProtocolUrl;
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }, 50);
+            
+            // 设置超时，如果协议未响应，则显示提示
+            setTimeout(() => {
+                statusDiv.innerHTML = '<span class="success">✅ 已发送登录信息</span>';
+                messageDiv.textContent = '如果小R助手未自动启动，请手动打开应用';
+                instructionsDiv.innerHTML = '<a href="https://github.com/RuanMingze/XiaoR-Ai/releases" style="color: #60a5fa; text-decoration: none;">点击此处下载小R助手</a>';
+            }, 3000);
+            
+            // 10秒后提供重定向选项
+            setTimeout(() => {
+                instructionsDiv.innerHTML = `
+                    <div>
+                        <p>小R助手未响应？</p>
+                        <a href="https://github.com/RuanMingze/XiaoR-Ai" style="color: #60a5fa; text-decoration: none; display: inline-block; margin-top: 10px;">访问项目主页</a>
+                    </div>
+                `;
+            }, 10000);
+        } else {
+            // 如果没有code参数，显示错误
+            statusDiv.innerHTML = '<span class="error">⚠️ 无效的回调参数</span>';
+            messageDiv.textContent = '缺少必要的认证参数';
+            instructionsDiv.textContent = '请通过GitHub登录页面访问此链接';
+            console.error('No code parameter found in URL');
+        }
+    </script>
+</body>
+</html>
