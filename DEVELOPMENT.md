@@ -21,7 +21,7 @@
 
 ### 1. AI对话功能
 - 使用Electron IPC机制与主进程通信
-- 支持多种AI模型（DeepseekV3.2、豆包、腾讯元宝、Qwen3）
+- 支持多种AI模型（DeepseekV3.2、豆包、腾讯元宝、Qwen3......）
 - 通过GET请求调用API接口
 
 ### 2. 对话管理

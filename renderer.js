@@ -9,12 +9,19 @@ const settingsPanel = document.getElementById('settingsPanel');
 const themeSelect = document.getElementById('themeSelect');
 const contextSelect = document.getElementById('contextSelect');
 const voiceToggle = document.getElementById('voiceToggle');
+const voiceTypeSelect = document.getElementById('voiceTypeSelect');
+const voiceTypeSetting = document.getElementById('voiceTypeSetting');
 const aiModelSelect = document.getElementById('aiModelSelect');
 const saveSettingsButton = document.getElementById('saveSettings');
 const closeSettingsButton = document.getElementById('closeSettings');
 const clearDataButton = document.getElementById('clearDataButton');
 const customModelSettings = document.getElementById('customModelSettings');
 const customModelUrl = document.getElementById('customModelUrl');
+const autoLaunchToggle = document.getElementById('autoLaunchToggle');
+const floatingBallToggle = document.getElementById('floatingBallToggle');
+const shortcutKeyInput = document.getElementById('shortcutKeyInput');
+const shortcutPrefix = document.getElementById('shortcutPrefix');
+const setShortcutButton = document.getElementById('setShortcutButton');
 
 // 获取新对话按钮元素
 const newChatButton = document.getElementById('newChatButton');
@@ -38,8 +45,20 @@ let currentAudio = null;
 // 当前激活的技能模式
 let activeSkillMode = null;
 
+// 引入天气测试功能
+// 检查weather-test.js是否已加载
+if (typeof openWeatherTest === 'undefined') {
+    console.log('天气测试功能未加载，需要确保weather-test.js已引入');
+}
+
 // 当前AI请求状态
 let currentRequestAborted = false;
+
+// 引入天气测试功能
+// 检查weather-test.js是否已加载
+if (typeof openWeatherTest === 'undefined') {
+    console.log('天气测试功能未加载，需要确保weather-test.js已引入');
+}
 
 // 保存技能状态到本地存储
 function saveSkillState() {
@@ -144,6 +163,15 @@ function showImageModal(imageSrc) {
 
 // 修改parseMarkdown函数，增强代码块处理
 function parseMarkdown(text) {
+  // 处理多行代码块（包含语言标识）
+  text = text.replace(/```(\w+)?\n([\s\S]*?)```/g, function(match, lang, code) {
+    if (lang) {
+      return `<pre class="code-block"><code class="language-${lang}">${code}</code></pre>`;
+    } else {
+      return `<pre class="code-block"><code>${code}</code></pre>`;
+    }
+  });
+  
   // 处理行内代码
   text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
   
@@ -157,13 +185,27 @@ function parseMarkdown(text) {
   text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
   
   // 自动识别并转换纯文本链接 (http, https, file)
-  text = text.replace(/\b(https?:\/\/|file:\/\/)[\w\-\.~:\/?#\[\]@!\$&'\(\)\*\+,;=%]+/gi, '<a href="$&" target="_blank">$&</a>');
+  text = text.replace(/\b(https?:\/\/|file:\/\/)[\w\-\.~:/?#\[\]@!\$&'\(\)\*\+,;=%]+/gi, '<a href="$&" target="_blank">$&</a>');
   
   // 处理XiaoR://Showimage，将其转换为显示本地图片
+  console.log('处理XiaoR://Showimage前:', text);
   text = text.replace(/XiaoR:\/\/Showimage/g, '<img src="RuanmAi.png" alt="小R形象图片" style="max-width: 200px; max-height: 200px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">');
+  console.log('处理XiaoR://Showimage后:', text);
+  
+  // 处理XiaoR://ShowCode协议，将其转换为可复制代码框
+  text = text.replace(/XiaoR:\/\/ShowCode\?Type=([\w\-\+]+)&Code=([\s\S]*?)(?=XiaoR:\/\/CodeEnd|(?=\n\n|\n$|$))/g, function(match, lang, code) {
+    // 解码URL编码的代码内容
+    code = decodeURIComponent(code);
+    
+    // 创建代码块HTML
+    return `<pre class="code-block"><code class="language-${lang}">${code}</code></pre>`;
+  });
+  
+  // 移除XiaoR://CodeEnd标记
+  text = text.replace(/XiaoR:\/\/CodeEnd/g, '');
   
   // 处理无序列表
-  text = text.replace(/^\s*-\s+(.*)$/gm, '<li>$1</li>');
+  text = text.replace(/^\s*\-\s+(.*)$/gm, '<li>$1</li>');
   text = text.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
   
   // 处理有序列表
@@ -175,13 +217,69 @@ function parseMarkdown(text) {
   text = text.replace(/^##### (.*$)/gm, '<h5>$1</h5>');
   text = text.replace(/^#### (.*$)/gm, '<h4>$1</h4>');
   text = text.replace(/^### (.*$)/gm, '<h3>$1</h3>');
-  text = text.replace(/^## (.*$)/gm, '<h2>$2</h2>');
+  text = text.replace(/^## (.*$)/gm, '<h2>$1</h2>');
   text = text.replace(/^# (.*$)/gm, '<h1>$1</h1>');
   
   // 处理段落
   text = text.replace(/^\s*(.+?)\s*$/gm, '<p>$1</p>');
   
   return text;
+}
+
+// 为代码块添加复制按钮
+function addCopyButtonToCodeBlock(codeElement) {
+  // 创建一个容器来包装代码块和复制按钮
+  const container = document.createElement('div');
+  container.style.cssText = `
+    position: relative;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+  `;
+  
+  // 克隆代码元素
+  const clonedCode = codeElement.cloneNode(true);
+  
+  // 创建复制按钮
+  const copyButton = document.createElement('button');
+  copyButton.textContent = '复制';
+  copyButton.style.cssText = `
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    padding: 3px 8px;
+    background: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+    z-index: 10;
+  `;
+  
+  // 添加复制功能
+  copyButton.addEventListener('click', function() {
+    const codeText = clonedCode.textContent || clonedCode.innerText;
+    navigator.clipboard.writeText(codeText).then(function() {
+      // 临时更改按钮文本以提供反馈
+      const originalText = copyButton.textContent;
+      copyButton.textContent = '已复制';
+      setTimeout(() => {
+        copyButton.textContent = originalText;
+      }, 2000);
+    }).catch(function(err) {
+      console.error('复制失败: ', err);
+    });
+  });
+  
+  // 将代码元素和复制按钮添加到容器中
+  container.appendChild(clonedCode);
+  container.appendChild(copyButton);
+  
+  // 替换原始代码元素
+  if (codeElement.parentNode) {
+    codeElement.parentNode.replaceChild(container, codeElement);
+  }
 }
 
 // 发送消息到聊天历史记录
@@ -197,13 +295,17 @@ function addMessageToHistory(message, isUser = false, messageId = null) {
   
   // 如果是AI消息，解析Markdown
   if (!isUser) {
-    // 检查消息是否包含HTML标记，如果是，则直接使用innerHTML
-    // 这是为了处理图片生成结果等包含HTML内容的消息
-    if (message.includes('<img') || message.includes('<br>') || message.includes('<small>') || message.includes('href=')) {
+    console.log('处理AI消息前:', message);
+    // 检查消息是否包含HTML标记或XiaoR协议，如果是，则直接使用innerHTML
+    // 这是为了处理图片生成结果、XiaoR://Showimage等包含HTML内容的消息
+    if (message.includes('<img') || message.includes('<br>') || message.includes('<small>') || message.includes('href=') || message.includes('XiaoR://')) {
+      console.log('消息包含HTML或XiaoR协议，直接使用innerHTML:', message);
       messageDiv.innerHTML = message;
     } else {
+      console.log('消息不包含HTML或XiaoR协议，使用parseMarkdown:', message);
       messageDiv.innerHTML = parseMarkdown(message);
     }
+    console.log('消息处理完成，innerHTML:', messageDiv.innerHTML);
   } else {
     messageDiv.textContent = message;
   }
@@ -212,6 +314,68 @@ function addMessageToHistory(message, isUser = false, messageId = null) {
   
   // 滚动到底部
   chatHistory.scrollTop = chatHistory.scrollHeight;
+}
+
+// 添加消息到历史记录（支持动画输出）
+function addMessageToHistory(message, isUser = false, messageId = null, animate = false) {
+  const messageDiv = document.createElement('div');
+  messageDiv.classList.add('message');
+  messageDiv.classList.add(isUser ? 'user' : 'ai');
+  
+  // 如果提供了messageId，则设置为该元素的ID
+  if (messageId) {
+    messageDiv.id = messageId;
+  }
+  
+  if (!isUser && animate) {
+    console.log('处理AI消息前（动画模式）:', message);
+    // 如果启用了动画输出，逐字显示
+    messageDiv.textContent = '';
+    chatHistory.appendChild(messageDiv);
+    
+    // 滚动到底部
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+    
+    // 逐字添加内容
+    let i = 0;
+    const timer = setInterval(() => {
+      if (i < message.length) {
+        messageDiv.textContent += message.charAt(i);
+        i++;
+        
+        // 滚动到底部
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+      } else {
+        clearInterval(timer);
+        
+        // 动画完成后，检查消息是否包含HTML标记或XiaoR协议，然后应用Markdown解析
+        if (message.includes('<img') || message.includes('<br>') || message.includes('<small>') || message.includes('href=') || message.includes('XiaoR://')) {
+          console.log('动画完成后，消息包含HTML或XiaoR协议，使用parseMarkdown:', message);
+          // 如果包含特殊标记，重新设置innerHTML以确保协议被正确解析
+          messageDiv.innerHTML = parseMarkdown(message);
+        }
+        console.log('动画消息处理完成，innerHTML:', messageDiv.innerHTML);
+      }
+    }, 30); // 每30毫秒显示一个字符
+  } else {
+    // 如果是AI消息，解析Markdown
+    if (!isUser) {
+      // 检查消息是否包含HTML标记，如果是，则直接使用innerHTML
+      // 这是为了处理图片生成结果等包含HTML内容的消息
+      if (message.includes('<img') || message.includes('<br>') || message.includes('<small>') || message.includes('href=')) {
+        messageDiv.innerHTML = message;
+      } else {
+        messageDiv.innerHTML = parseMarkdown(message);
+      }
+    } else {
+      messageDiv.textContent = message;
+    }
+    
+    chatHistory.appendChild(messageDiv);
+    
+    // 滚动到底部
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+  }
 }
 
 // 更新现有消息内容
@@ -236,15 +400,19 @@ function updateMessageInHistory(messageId, newContent) {
   // 更新当前对话历史中对应的消息
   const currentHistory = getConversationHistory();
   
-  // 由于我们为动态消息分配了ID，我们需要将消息ID与历史记录项关联
-  // 这里我们不使用模糊匹配，而是需要一种方式来标记消息
-  // 为解决这个问题，我们需要在添加"图片正在生成中..."消息时也记录其索引
+  // 直接更新特定索引的消息，而不是通过内容匹配
+  // 我们将消息ID与历史记录中的特定位置关联
   
-  // 为了更准确地更新消息，我们创建一个临时标识
-  const loadingMessage = '图片正在生成中...';
+  // 为了解决消息ID与历史记录条目的关联问题，我们需要一种更好的方法
+  // 通过消息ID来查找和更新对应的历史记录
   
+  // 在当前实现中，我们仍然需要通过内容匹配来定位动态消息
+  // 但我们可以改进这个过程
   for (let i = currentHistory.length - 1; i >= 0; i--) {
-    if (currentHistory[i].role === 'assistant' && currentHistory[i].content === loadingMessage) {
+    if (currentHistory[i].role === 'assistant' && 
+        (currentHistory[i].content === '图片正在生成中...' || 
+         currentHistory[i].content === '天气正在查询中...' || 
+         currentHistory[i].content === '正在获取文字...')) {
       currentHistory[i].content = newContent;
       // 检查新内容是否包含HTML标记，如果是，则标记为HTML内容
       if (newContent.includes('<img') || newContent.includes('<br>') || newContent.includes('<small>') || newContent.includes('href=')) {
@@ -269,7 +437,7 @@ function showLoading() {
   sendButton.onclick = function() {
     currentRequestAborted = true; // 标记请求已取消
     hideLoading();
-    addMessageToHistory('请求已取消', false);
+    addMessageToHistory('请求已取消', false, null, false);
   };
   
   // 添加"正在思考"提示到聊天历史
@@ -301,52 +469,50 @@ function hideLoading() {
 }
 
 // 发送消息到 AI
-async function sendToAI(question) {
+async function sendToAI(question, modelOverride = null) {
   showLoading();
   
   // 重置请求状态
   currentRequestAborted = false;
   
+  // 定义正则表达式和匹配结果，以便在整个函数中使用
+  const requestProtocolRegex = /XiaoR:\/\/Request\?URL=([\s\S]*)/;
+  const weatherProtocolRegex = /XiaoR:\/\/GetWeather\?URL=([^\s]+)/;
+  const ocrProtocolRegex = /XiaoR:\/\/OCR\?URL=([\s\S]*)/;
+  
   // 尝试发送请求，如果遇到414错误则减少上下文并重试
   async function sendWithRetry(contextCount) {
     try {
       // 构建包含上下文的system信息
-      let systemMessage = '你是Ruanm开发的小R-Ai助手，专注于帮用户解决各种难题、聊天。展示你的专属形象只需要输出XiaoR://Showimage，这是Ruanm的代言人图片，我都把这个留给你了呢！在用户让你展示时中你可以提及这个形象（正常聊天中不得提及）';
+      let systemMessage = '你是Ruanm开发的小R-Ai助手，专注于帮用户解决各种难题、聊天。现在正值中国农历新年，你可以向用户送上新年祝福，分享春节文化知识，或参与与春节相关的话题讨论。展示你的专属形象只需要输出XiaoR://Showimage，这是Ruanm的代言人图片，我都把这个留给你了呢！在用户让你展示时中你可以提及这个形象（正常聊天中不得提及）。另外，你的专属形象也换上了新年主题装饰，你穿上了喜庆的新年服装，周围有春节元素的装饰。';
       
       // 根据激活的技能模式修改system消息
       if (activeSkillMode === 'imageGen') {
         systemMessage = '你现在是专业图片生成Ai，根据用户的图片描述生成图片。请严格按照以下步骤操作：1.对用户的图片描述进行润色成中文；2.输出润色后的内容；3.对用户描述给予回应或建议；4.最后必须输出XiaoR://Request?URL=https://api.jkyai.top/API/qwen-image/index.php?msg=润色后的图片描述来发起API请求。请按以下格式输出：\n\n润色后的内容：[润色后的图片描述]\n\n[对用户描述的简短回应或建议]\n\nXiaoR://Request?URL=https://api.jkyai.top/API/qwen-image/index.php?msg=润色后的图片描述';
       } else if (activeSkillMode === 'imageOcr') {
-        // 检查用户是否提供了图片URL
-        const imageUrlRegex = /(https?:\/\/[^\s]+\.(?:png|jpe?g|gif|webp|bmp|tiff|svg))/i;
-        const imageUrlMatch = question.match(imageUrlRegex);
+        // 构建OCR API请求的system消息，要求AI输出特定格式的OCR请求
+        systemMessage = '你现在是专业OCR识别助手，帮助用户从图片中识别文字。请严格按照以下步骤操作：1.对用户提供的图片链接进行处理；2.输出处理后的链接；3.对OCR识别给予回应或建议；4.最后必须输出XiaoR://OCR?URL=https://api.jkyai.top/API/ocrwzsb.php?url=图片链接&type=text来发起OCR API请求。请按以下格式输出：\n\n处理后链接：[处理后的图片链接]\n\n[对OCR识别的简短回应或建议]\n\nXiaoR://OCR?URL=https://api.jkyai.top/API/ocrwzsb.php?url=[图片链接]&type=text';
         
-        if (imageUrlMatch) {
-          const imageUrl = imageUrlMatch[0];
-          // 构建OCR API请求
-          const ocrApiUrl = `https://api.jkyai.top/API/deepseek-ocr.php?question=帮我识别图片里的文字&image=${encodeURIComponent(imageUrl)}`;
-          
-          // 在DevTools中输出OCR请求日志
-          console.log('OCR模式：准备发送OCR请求，问题:', question);
-          console.log('OCR模式：检测到图片URL:', imageUrl);
-          console.log('OCR模式：OCR API URL:', ocrApiUrl);
-          
-          // 构建OCR API请求的system消息，要求AI直接输出识别的文字内容
-          systemMessage = `你现在要帮助用户识别图片里的文字，OCR的API：${ocrApiUrl}。请直接输出识别到的所有文字内容，不要解释API的使用方法或其他内容。`;
-        } else {
-          // 如果没有检测到图片URL，使用普通OCR提示
-          systemMessage = '你现在要帮助用户识别图片里的文字，OCR的APi：https://api.jkyai.top/API/deepseek-ocr.php?question=帮我识别图片里的文字&image=用户提供的图片URL。请直接输出识别到的所有文字内容，不要解释API的使用方法或其他内容。';
-          
-          // 在DevTools中输出OCR请求日志
-          console.log('OCR模式：准备发送OCR请求，问题:', question);
-          console.log('OCR模式：未检测到图片URL，提示用户提供图片URL');
-        }
+        // 在DevTools中输出OCR请求日志
+        console.log('OCR模式：准备发送OCR请求，问题:', question);
       } else if (activeSkillMode === 'translation') {
         // 翻译模式：要求AI进行翻译
         systemMessage = '你现在是一个专业的翻译助手，用户将提供需要翻译的文本。请直接输出翻译结果，不要添加任何解释或额外内容。如果用户没有明确指定目标语言，请询问用户需要翻译成哪种语言。';
         
         // 在DevTools中输出翻译请求日志
         console.log('翻译模式：准备发送翻译请求，问题:', question);
+      } else if (activeSkillMode === 'codeAssistant') {
+        // 编程助手模式：要求AI进行代码解释和生成
+        systemMessage = '你现在是一个专业的编程助手，专门帮助用户解释和生成代码。请遵循以下规则：\n1. 如果用户请求解释代码，请详细解释代码的功能、逻辑和关键部分；\n2. 如果用户请求生成代码，请生成清晰、高效的代码，并提供必要的注释；\n3. 如果用户询问编程问题，请提供详细的解答和最佳实践建议；\n4. 输出代码时请使用XiaoR://ShowCode协议格式：XiaoR://ShowCode?Type=编程语言&Code=具体代码，代码结束后输出XiaoR://CodeEnd标记；\n5. 对于复杂问题，提供多个解决方案并解释其优缺点。';
+        
+        // 在DevTools中输出编程助手请求日志
+        console.log('编程助手模式：准备发送编程助手请求，问题:', question);
+      } else if (activeSkillMode === 'weather') {
+        // 天气查询模式：要求AI输出特定格式的天气查询请求
+        systemMessage = '你现在是专业天气查询AI助手，根据用户提供的地名查询天气信息。请严格按照以下步骤操作：1.对用户提供的地名进行处理（中国地名转换为拼音）；2.输出处理后的地名；3.对天气查询给予回应或建议；4.最后必须输出XiaoR://GetWeather?URL=http://api.openweathermap.org/data/2.5/weather?q=地名&appid=YOUR_API_KEY来发起天气API请求，其中YOUR_API_KEY需要用户自行替换。请按以下格式输出：\n\n处理后地名：[处理后的地名]\n\n[对天气查询的简短回应或建议]\n\nXiaoR://GetWeather?URL=http://api.openweathermap.org/data/2.5/weather?q=[地名]&appid=YOUR_API_KEY';
+        
+        // 在DevTools中输出天气查询请求日志
+        console.log('天气查询模式：准备发送天气查询请求，问题:', question);
       }
       
       // 获取当前对话的历史，添加到system信息中
@@ -386,6 +552,11 @@ async function sendToAI(question) {
         aiModel = settings.aiModel || 'deepseek';
       }
       
+      // 如果提供了模型覆盖参数，则使用它
+      if (modelOverride) {
+        aiModel = modelOverride;
+      }
+      
       // 根据AI模型选择API端点
       let apiEndpoint = 'https://api.jkyai.top/API/depsek3.2.php'; // 默认为Deepseek
       if (aiModel === 'claude') {
@@ -394,6 +565,43 @@ async function sendToAI(question) {
         apiEndpoint = 'https://api.jkyai.top/API/yuanbao.php'; // 腾讯元宝
       } else if (aiModel === 'qwen3') {
         apiEndpoint = 'https://api.jkyai.top/API/qwen3.php'; // Qwen3
+      } else if (aiModel === 'ling') {
+        apiEndpoint = 'https://api.jkyai.top/API/ling-1t.php'; // 蚂蚁Ling2.0
+      } else if (aiModel === 'gemini') {
+        apiEndpoint = 'https://api.jkyai.top/API/gemini2.5/index.php'; // Gemini-2.5
+      } else if (aiModel === 'ollama') {
+        // Ollama模型：直接处理请求并返回结果
+        const ollamaServerUrl = settings.ollamaServerUrl || 'http://localhost:11434';
+        const ollamaModel = settings.ollamaModel || 'llama2'; // 默认模型
+        
+        // 构建Ollama请求数据
+        const ollamaData = {
+          model: ollamaModel,
+          prompt: question,
+          system: systemMessage,
+          stream: false // 非流式响应
+        };
+        
+        // 发送请求到Ollama API
+        try {
+          const ollamaResponse = await fetch(`${ollamaServerUrl}/api/generate`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(ollamaData)
+          });
+          
+          if (!ollamaResponse.ok) {
+            throw new Error(`Ollama API请求失败: ${ollamaResponse.status} ${ollamaResponse.statusText}`);
+          }
+          
+          const ollamaResult = await ollamaResponse.json();
+          return ollamaResult.response || 'Ollama未返回有效响应';
+        } catch (ollamaError) {
+          console.error('Ollama请求失败:', ollamaError);
+          throw new Error(`Ollama请求失败: ${ollamaError.message}`);
+        }
       } else if (aiModel === 'custom') {
         // 自定义模型：从设置中获取API URL并替换占位符
         if (settings && settings.customModelUrl) {
@@ -409,7 +617,7 @@ async function sendToAI(question) {
         }
       }
       
-      // 通过 Electron API 发送请求
+      // 通过 Electron API 发送请求（非Ollama模型）
       const response = await window.electronAPI.sendAIRequest({
         ques: requestData.ques,
         system: requestData.system,
@@ -492,14 +700,250 @@ async function sendToAI(question) {
     
     if (response) {
       if (response.error) {
-        addMessageToHistory(`错误: ${response.error}`, false);
+        addMessageToHistory(`错误: ${response.error}`, false, null, false);
+      } else if (response.type === 'ollama_request') {
+        // 处理Ollama请求
+        const savedSettings = localStorage.getItem('xiaor-settings');
+        let settings = {};
+        if (savedSettings) {
+          settings = JSON.parse(savedSettings);
+        }
+        
+        const ollamaServerUrl = settings.ollamaServerUrl || 'http://localhost:11434';
+        const ollamaModel = settings.ollamaModel || 'llama2'; // 默认模型
+        
+        // 检查是否启用动画输出
+        const animationEnabled = settings.animationOutput || false;
+        
+        // 构建Ollama请求数据
+        const ollamaData = {
+          model: ollamaModel,
+          prompt: response.question,
+          system: response.system,
+          stream: animationEnabled // 如果启用动画输出，则使用流式响应
+        };
+        
+        // 发送请求到Ollama API
+        try {
+          if (animationEnabled) {
+            // 使用流式响应以支持动画输出
+            fetch(`${ollamaServerUrl}/api/generate`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({...ollamaData, stream: true})
+            })
+            .then(ollamaResponse => {
+              if (!ollamaResponse.ok) {
+                throw new Error(`Ollama API请求失败: ${ollamaResponse.status} ${ollamaResponse.statusText}`);
+              }
+              
+              // 读取流式响应
+              const reader = ollamaResponse.body.getReader();
+              const decoder = new TextDecoder();
+              let fullResponse = '';
+              
+              // 创建消息元素用于动画显示
+              const messageDiv = document.createElement('div');
+              messageDiv.classList.add('message', 'ai');
+              const messageId = 'ollama-response-' + Date.now();
+              messageDiv.id = messageId;
+              chatHistory.appendChild(messageDiv);
+              
+              // 滚动到底部
+              chatHistory.scrollTop = chatHistory.scrollHeight;
+              
+              function readStream() {
+                reader.read().then(({ done, value }) => {
+                  if (done) {
+                    reader.releaseLock();
+                    
+                    // 将最终响应添加到对话历史
+                    const currentHistory = getConversationHistory();
+                    currentHistory.push({ role: 'assistant', content: fullResponse });
+                    setConversationHistory(currentHistory);
+                    
+                    // 保存所有对话到本地
+                    saveAllConversations();
+                    
+                    // 将当前对话移到列表顶部
+                    moveConversationToTop(currentConversationId);
+                    
+                    return;
+                  }
+                  
+                  const chunk = decoder.decode(value, { stream: true });
+                  const lines = chunk.split('\n');
+                  
+                  for (const line of lines) {
+                    if (line.trim() === '') continue;
+                    
+                    try {
+                      const json = JSON.parse(line);
+                      if (json.response) {
+                        fullResponse += json.response;
+                        
+                        // 逐字更新消息显示
+                        messageDiv.innerHTML = parseMarkdown(fullResponse);
+                        
+                        // 滚动到底部
+                        chatHistory.scrollTop = chatHistory.scrollHeight;
+                      }
+                      
+                      if (json.done) {
+                        reader.releaseLock();
+                        
+                        // 将最终响应添加到对话历史
+                        const currentHistory = getConversationHistory();
+                        currentHistory.push({ role: 'assistant', content: fullResponse });
+                        setConversationHistory(currentHistory);
+                        
+                        // 保存所有对话到本地
+                        saveAllConversations();
+                        
+                        // 将当前对话移到列表顶部
+                        moveConversationToTop(currentConversationId);
+                        
+                        return;
+                      }
+                    } catch (e) {
+                      // 忽略非JSON行
+                      continue;
+                    }
+                  }
+                  
+                  readStream(); // 继续读取下一块数据
+                }).catch(error => {
+                  console.error('读取Ollama流式响应时出错:', error);
+                  
+                  // 显示错误消息
+                  const errorMessage = `Ollama响应读取失败: ${error.message}`;
+                  messageDiv.textContent = errorMessage;
+                  
+                  // 添加到对话历史
+                  const currentHistory = getConversationHistory();
+                  currentHistory.push({ role: 'assistant', content: errorMessage });
+                  setConversationHistory(currentHistory);
+                  
+                  // 保存所有对话到本地
+                  saveAllConversations();
+                  
+                  // 将当前对话移到列表顶部
+                  moveConversationToTop(currentConversationId);
+                });
+              }
+              
+              readStream(); // 开始读取流
+            })
+            .catch(error => {
+              console.error('Ollama请求失败:', error);
+              
+              // 显示错误消息
+              addMessageToHistory(`Ollama请求失败: ${error.message}`, false, null, false);
+              
+              // 将错误添加到对话历史
+              const currentHistory = getConversationHistory();
+              currentHistory.push({ role: 'assistant', content: `Ollama请求失败: ${error.message}` });
+              setConversationHistory(currentHistory);
+              
+              // 保存所有对话到本地
+              saveAllConversations();
+              
+              // 将当前对话移到列表顶部
+              moveConversationToTop(currentConversationId);
+            });
+          } else {
+            // 使用非流式响应
+            fetch(`${ollamaServerUrl}/api/generate`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({...ollamaData, stream: false})
+            })
+            .then(ollamaResponse => {
+              if (!ollamaResponse.ok) {
+                throw new Error(`Ollama API请求失败: ${ollamaResponse.status} ${ollamaResponse.statusText}`);
+              }
+              return ollamaResponse.json();
+            })
+            .then(ollamaResult => {
+              // 正常处理AI响应
+              const aiResponse = ollamaResult.response || 'Ollama未返回有效响应';
+              
+              // 检查是否启用动画输出
+              const savedSettings = localStorage.getItem('xiaor-settings');
+              let animationEnabled = false;
+              if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+                animationEnabled = settings.animationOutput || false;
+              }
+              
+              // 正常处理AI响应
+              addMessageToHistory(aiResponse, false, null, animationEnabled);
+              
+              // 播放AI语音回复
+              playAIVoice(aiResponse);
+              
+              // 更新当前对话的历史
+              const currentHistory = getConversationHistory();
+              currentHistory.push({ role: 'user', content: question });
+              currentHistory.push({ role: 'assistant', content: aiResponse });
+              setConversationHistory(currentHistory);
+              
+              // 保存所有对话到本地
+              saveAllConversations();
+              
+              // 将当前对话移到列表顶部
+              moveConversationToTop(currentConversationId);
+            })
+            .catch(error => {
+              console.error('Ollama请求失败:', error);
+              
+              // 显示错误消息
+              addMessageToHistory(`Ollama请求失败: ${error.message}`, false, null, false);
+              
+              // 将错误添加到对话历史
+              const currentHistory = getConversationHistory();
+              currentHistory.push({ role: 'assistant', content: `Ollama请求失败: ${error.message}` });
+              setConversationHistory(currentHistory);
+              
+              // 保存所有对话到本地
+              saveAllConversations();
+              
+              // 将当前对话移到列表顶部
+              moveConversationToTop(currentConversationId);
+            });
+          }
+        } catch (ollamaError) {
+          console.error('Ollama请求失败:', ollamaError);
+          
+          // 显示错误消息
+          addMessageToHistory(`Ollama请求失败: ${ollamaError.message}`, false, null, false);
+          
+          // 将错误添加到对话历史
+          const currentHistory = getConversationHistory();
+          currentHistory.push({ role: 'assistant', content: `Ollama请求失败: ${ollamaError.message}` });
+          setConversationHistory(currentHistory);
+          
+          // 保存所有对话到本地
+          saveAllConversations();
+          
+          // 将当前对话移到列表顶部
+          moveConversationToTop(currentConversationId);
+        }
+        
+        // 返回，避免继续处理
+        return;
       } else {
         // 成功获取 AI 回复
         const aiResponse = response;
         
-        // 检查AI响应是否包含XiaoR://Request协议
-        const requestProtocolRegex = /XiaoR:\/\/Request\?URL=([\s\S]*)/;
+        // 检查AI响应是否包含各种协议
         const requestMatch = aiResponse.match(requestProtocolRegex);
+        const weatherMatch = aiResponse.match(weatherProtocolRegex);
+        const ocrMatch = aiResponse.match(ocrProtocolRegex);
         
         if (requestMatch) {
           // 提取请求URL
@@ -507,14 +951,14 @@ async function sendToAI(question) {
           
           // 显示AI的原始响应，但隐藏XiaoR://Request?URL=部分
           const aiResponseWithoutProtocol = aiResponse.replace(requestProtocolRegex, '').trim();
-          addMessageToHistory(aiResponseWithoutProtocol, false);
+          addMessageToHistory(aiResponseWithoutProtocol, false, null, false);
           
           // 创建一个唯一的ID用于标识正在生成的消息
           const messageId = 'api-request-' + Date.now();
           
           // 在AI输出下方显示"图片正在生成中..."
           const loadingMessage = '图片正在生成中...';
-          addMessageToHistory(loadingMessage, false, messageId);
+          addMessageToHistory(loadingMessage, false, messageId, false);
           
           // 同时将此消息添加到对话历史中
           const currentHistory = getConversationHistory();
@@ -580,31 +1024,235 @@ async function sendToAI(question) {
             updateMessageInHistory(messageId, errorMessage);
           }
         } else {
-          // 正常处理AI响应
-          addMessageToHistory(aiResponse, false);
+          // 检查AI响应是否包含XiaoR://GetWeather协议
+          const weatherMatch = aiResponse.match(weatherProtocolRegex);
           
-          // 播放AI语音回复
-          playAIVoice(aiResponse);
+          if (weatherMatch) {
+            // 获取用户保存的API密钥（如果有的话）
+            const savedSettings = localStorage.getItem('xiaor-settings');
+            let userApiKey = '';
+            if (savedSettings) {
+              const settings = JSON.parse(savedSettings);
+              userApiKey = settings.weatherApiKey || '';
+            }
+            
+            // 提取天气请求URL
+            let weatherUrl = weatherMatch[1].trim();
+            
+            // 如果URL包含默认密钥占位符且用户有自定义密钥，则替换它
+            if (weatherUrl.includes('YOUR_API_KEY') && userApiKey) {
+              weatherUrl = weatherUrl.replace('YOUR_API_KEY', userApiKey);
+            }
+            
+            // 显示AI的原始响应，但隐藏XiaoR://GetWeather?URL=部分
+            const aiResponseWithoutProtocol = aiResponse.replace(weatherProtocolRegex, '').trim();
+            addMessageToHistory(aiResponseWithoutProtocol, false, null, false);
+            
+            // 创建一个唯一的ID用于标识正在查询的消息
+            const messageId = 'weather-request-' + Date.now();
+            
+            // 在AI输出下方显示"天气正在查询中..."
+            const loadingMessage = '天气正在查询中...';
+            addMessageToHistory(loadingMessage, false, messageId, false);
+            
+            // 同时将此消息添加到对话历史中
+            const currentHistory = getConversationHistory();
+            currentHistory.push({ role: 'assistant', content: loadingMessage });
+            setConversationHistory(currentHistory);
+            
+            // 检查URL中是否包含默认的API密钥占位符
+            if (weatherUrl.includes('YOUR_API_KEY')) {
+              const errorMessage = `请提供您自己的OpenWeatherMap API密钥。您可以在 https://openweathermap.org/api 注册获取免费的API密钥，然后在设置中配置。`;
+              updateMessageContent(messageId, errorMessage);
+              
+              // 更新对话历史中的这条消息
+              updateMessageInHistory(messageId, errorMessage);
+              
+              // 更新当前对话的历史
+              const currentHistory = getConversationHistory();
+              currentHistory.push({ role: 'user', content: question });
+              
+              // 保存AI响应但去除天气协议部分
+              const aiResponseWithoutProtocol = aiResponse.replace(weatherProtocolRegex, '').trim();
+              currentHistory.push({ role: 'assistant', content: aiResponseWithoutProtocol });
+              
+              setConversationHistory(currentHistory);
+              
+              // 保存所有对话到本地
+              await saveAllConversations();
+              
+              // 将当前对话移到列表顶部
+              moveConversationToTop(currentConversationId);
+              
+              // 如果这是对话中的第一次AI回复，尝试生成对话标题
+              if (currentHistory.length === 2) { // 用户问题 + AI回复 = 2
+                setTimeout(() => {
+                  generateConversationTitle(currentConversationId);
+                }, 1000); // 延迟1秒执行，避免影响主要对话流程
+              }
+              return; // 结束处理
+            }
+            
+            // 发起天气API请求
+            try {
+              fetch(weatherUrl)
+                .then(weatherResponse => weatherResponse.json())
+                .then(weatherData => {
+                  // 解析天气数据并格式化显示
+                  if (weatherData && weatherData.main) {
+                    const cityName = weatherData.name || '未知城市';
+                    const country = weatherData.sys ? weatherData.sys.country : '';
+                    const temperature = Math.round(weatherData.main.temp - 273.15); // 开尔文转摄氏度
+                    const feelsLike = Math.round(weatherData.main.feels_like - 273.15);
+                    const humidity = weatherData.main.humidity;
+                    const description = weatherData.weather && weatherData.weather[0] ? weatherData.weather[0].description : '未知';
+                    const windSpeed = weatherData.wind ? weatherData.wind.speed : '未知';
+                    
+                    // 格式化天气信息
+                    const weatherInfo = `
+🏙️ 城市: ${cityName}${country ? ` (${country})` : ''}
+🌡️ 温度: ${temperature}°C (体感 ${feelsLike}°C)
+☁️ 天气: ${description}
+💧 湿度: ${humidity}%
+💨 风速: ${windSpeed} m/s`;
+                    
+                    // 更新消息内容为天气信息
+                    const formattedWeather = `🌤️ 天气查询成功！\n${weatherInfo}`;
+                    updateMessageContent(messageId, formattedWeather);
+                    
+                    // 更新对话历史中的这条消息
+                    updateMessageInHistory(messageId, formattedWeather);
+                    
+                    // 播放天气信息语音
+                    playAIVoice(`当前${cityName}的天气是${description}，温度${temperature}摄氏度，湿度${humidity}%。`);
+                  } else {
+                    const errorMessage = `天气查询失败：未获取到有效数据`;
+                    updateMessageContent(messageId, errorMessage);
+                    
+                    // 更新对话历史中的这条消息
+                    updateMessageInHistory(messageId, errorMessage);
+                  }
+                })
+                .catch(error => {
+                  console.error('天气API请求失败:', error);
+                  const errorMessage = `天气查询失败: ${error.message}`;
+                  updateMessageContent(messageId, errorMessage);
+                  
+                  // 更新对话历史中的这条消息
+                  updateMessageInHistory(messageId, errorMessage);
+                });
+            } catch (error) {
+              console.error('处理天气API请求时出错:', error);
+              const errorMessage = `处理天气查询请求时出错: ${error.message}`;
+              updateMessageContent(messageId, errorMessage);
+              
+              // 更新对话历史中的这条消息
+              updateMessageInHistory(messageId, errorMessage);
+            }
+          } else {
+            // 检查AI响应是否包含XiaoR://OCR协议
+            const ocrMatch = aiResponse.match(ocrProtocolRegex);
+            
+            if (ocrMatch) {
+              // 提取OCR请求URL
+              const ocrUrl = ocrMatch[1].trim();
+              
+              // 显示AI的原始响应，但隐藏XiaoR://OCR?URL=部分
+              const aiResponseWithoutProtocol = aiResponse.replace(ocrProtocolRegex, '').trim();
+              addMessageToHistory(aiResponseWithoutProtocol, false, null, false);
+              
+              // 创建一个唯一的ID用于标识正在识别的消息
+              const messageId = 'ocr-request-' + Date.now();
+              
+              // 在AI输出下方显示"正在获取文字..."
+              const loadingMessage = '正在获取文字...';
+              addMessageToHistory(loadingMessage, false, messageId, false);
+              
+              // 同时将此消息添加到对话历史中
+              const currentHistory = getConversationHistory();
+              currentHistory.push({ role: 'assistant', content: loadingMessage });
+              setConversationHistory(currentHistory);
+              
+              // 发起OCR API请求
+              try {
+                fetch(ocrUrl)
+                  .then(ocrResponse => ocrResponse.text())
+                  .then(ocrResult => {
+                    // 更新消息内容为OCR结果
+                    const formattedResult = `OCR识别成功！\n\n${ocrResult}`;
+                    updateMessageContent(messageId, formattedResult);
+                    
+                    // 更新对话历史中的这条消息
+                    updateMessageInHistory(messageId, formattedResult);
+                    
+                    // 播放OCR结果的语音
+                    playAIVoice(`OCR识别成功，识别到的文字是：${ocrResult}`);
+                  })
+                  .catch(error => {
+                    console.error('OCR API请求失败:', error);
+                    const errorMessage = `OCR识别失败: ${error.message}`;
+                    updateMessageContent(messageId, errorMessage);
+                    
+                    // 更新对话历史中的这条消息
+                    updateMessageInHistory(messageId, errorMessage);
+                  });
+              } catch (error) {
+                console.error('处理OCR API请求时出错:', error);
+                const errorMessage = `处理OCR请求时出错: ${error.message}`;
+                updateMessageContent(messageId, errorMessage);
+                
+                // 更新对话历史中的这条消息
+                updateMessageInHistory(messageId, errorMessage);
+              }
+            } else {
+              // 检查是否启用动画输出
+              const savedSettings = localStorage.getItem('xiaor-settings');
+              let animationEnabled = false;
+              if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+                animationEnabled = settings.animationOutput || false;
+              }
+              
+              // 正常处理AI响应
+              addMessageToHistory(aiResponse, false, null, animationEnabled);
+              
+              // 播放AI语音回复
+              playAIVoice(aiResponse);
+            }
+          }
         }
         
         // 更新当前对话的历史
         const currentHistory = getConversationHistory();
         currentHistory.push({ role: 'user', content: question });
         
-        // 对于图片生成请求，保存处理后的AI响应（去除协议部分）
+        // 对于图片生成、天气查询和OCR请求，保存处理后的AI响应（去除协议部分）
         if (requestMatch) {
           // 保存AI响应但去除协议部分
           const aiResponseWithoutProtocol = aiResponse.replace(requestProtocolRegex, '').trim();
           currentHistory.push({ role: 'assistant', content: aiResponseWithoutProtocol });
           // 注意："图片正在生成中..."消息已经在此前添加
+        } else if (weatherMatch) {
+          // 保存AI响应但去除天气协议部分
+          const aiResponseWithoutProtocol = aiResponse.replace(weatherProtocolRegex, '').trim();
+          currentHistory.push({ role: 'assistant', content: aiResponseWithoutProtocol });
+          // 注意："天气正在查询中..."消息已经在此前添加
+        } else if (ocrMatch) {
+          // 保存AI响应但去除OCR协议部分
+          const aiResponseWithoutProtocol = aiResponse.replace(ocrProtocolRegex, '').trim();
+          currentHistory.push({ role: 'assistant', content: aiResponseWithoutProtocol });
+          // 注意："正在获取文字..."消息已经在此前添加
         } else {
-          // 对于非图片生成请求，保存完整的AI响应
+          // 对于非特殊请求，保存完整的AI响应
           currentHistory.push({ role: 'assistant', content: aiResponse });
         }
         setConversationHistory(currentHistory);
         
         // 保存所有对话到本地
         await saveAllConversations();
+        
+        // 将当前对话移到列表顶部
+        moveConversationToTop(currentConversationId);
         
         // 如果这是对话中的第一次AI回复，尝试生成对话标题
         if (currentHistory.length === 2) { // 用户问题 + AI回复 = 2
@@ -620,9 +1268,14 @@ async function sendToAI(question) {
   } catch (error) {
     // 如果所有重试都失败了，显示最后一次的错误
     if (lastError && (lastError.message.includes('414') || lastError.message.includes('Request-URI Too Large'))) {
-      addMessageToHistory('错误: 请求过长，已自动减少对话历史但仍然失败，请尝试重新开始对话', false);
+      addMessageToHistory('错误: 请求过长，已自动减少对话历史但仍然失败，请尝试重新开始对话', false, null, false);
     } else {
-      addMessageToHistory(`请求失败: ${error.message}`, false);
+      addMessageToHistory(`请求失败: ${error.message}`, false, null, false);
+    }
+    
+    // 即使出现错误，也将当前对话移到列表顶部
+    if (currentConversationId) {
+      moveConversationToTop(currentConversationId);
     }
   } finally {
     hideLoading();
@@ -641,7 +1294,13 @@ function handleUserMessage() {
     }
     
     // 添加用户消息到聊天历史
-    addMessageToHistory(message, true);
+    addMessageToHistory(message, true, null, false);
+    
+    // 更新当前对话的更新时间
+    const currentConv = getCurrentConversation();
+    if (currentConv) {
+      currentConv.updatedAt = new Date().toISOString();
+    }
     
     // 清空输入框
     userInput.value = '';
@@ -699,6 +1358,8 @@ function hideSkillMenu(event) {
 const imageGenMenuButton = document.getElementById('imageGenMenuButton');
 const imageOcrMenuButton = document.getElementById('imageOcrMenuButton');
 const translationMenuButton = document.getElementById('translationMenuButton');
+const codeAssistantMenuButton = document.getElementById('codeAssistantMenuButton');
+const weatherMenuButton = document.getElementById('weatherMenuButton');
 
 if (imageGenMenuButton && imageGenMenuButton.closest('#skillMenu')) {
   imageGenMenuButton.addEventListener('click', (event) => {
@@ -763,6 +1424,48 @@ if (translationMenuButton && translationMenuButton.closest('#skillMenu')) {
   });
 }
 
+if (codeAssistantMenuButton && codeAssistantMenuButton.closest('#skillMenu')) {
+  codeAssistantMenuButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    // 切换到编程助手模式或取消
+    if (activeSkillMode === 'codeAssistant') {
+      activeSkillMode = null;
+      showNotification('已取消编程助手模式');
+    } else {
+      activeSkillMode = 'codeAssistant';
+      showNotification('已切换到编程助手模式');
+    }
+    skillMenu.style.display = 'none';
+    document.removeEventListener('click', hideSkillMenu);
+    // 更新按钮状态
+    updateSkillButtonStates();
+    
+    // 保存技能状态
+    saveSkillState();
+  });
+}
+
+if (weatherMenuButton && weatherMenuButton.closest('#skillMenu')) {
+  weatherMenuButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    // 切换到天气查询模式或取消
+    if (activeSkillMode === 'weather') {
+      activeSkillMode = null;
+      showNotification('已取消天气查询模式');
+    } else {
+      activeSkillMode = 'weather';
+      showNotification('已切换到天气查询模式');
+    }
+    skillMenu.style.display = 'none';
+    document.removeEventListener('click', hideSkillMenu);
+    // 更新按钮状态
+    updateSkillButtonStates();
+    
+    // 保存技能状态
+    saveSkillState();
+  });
+}
+
 // 显示通知的函数
 function showNotification(message) {
   // 创建通知元素
@@ -800,7 +1503,7 @@ function showNewYearGreeting() {
   const newYearMessage = '🎉 新年快乐！祝您在新的一年里万事如意，AI助手将一如既往地为您服务！';
   
   // 添加到聊天历史
-  addMessageToHistory(newYearMessage, false);
+  addMessageToHistory(newYearMessage, false, null, false);
 }
 
 // 检查是否应该显示新年祝福
@@ -1141,7 +1844,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       
       // 显示当前对话的内容
       latestConversation.history.forEach(message => {
-        addMessageToHistory(message.content, message.role === 'user');
+        addMessageToHistory(message.content, message.role === 'user', null, false);
       });
     } else {
       // 如果没有对话记录，创建并切换到新对话
@@ -1149,7 +1852,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       switchToConversation(newId);
       
       // 显示欢迎消息
-      addMessageToHistory('您好！我是小R AI助手，有什么可以帮助您的吗？', false);
+      addMessageToHistory('您好！我是小R AI助手，有什么可以帮助您的吗？', false, null, false);
     }
     
     // 更新对话列表显示
@@ -1165,7 +1868,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     switchToConversation(newId);
     
     // 显示欢迎消息
-    addMessageToHistory('您好！我是小R AI助手，有什么可以帮助您的吗？', false);
+    addMessageToHistory('您好！我是小R AI助手，有什么可以帮助您的吗？', false, null, false);
     
     // 更新对话列表显示
     updateChatListDisplay();
@@ -1321,8 +2024,21 @@ async function playAIVoice(text) {
     // 去除表情符号
     const textWithoutEmojis = text.replace(/[\u{1f300}-\u{1f5ff}\u{1f900}-\u{1f9ff}\u{1f600}-\u{1f64f}\u{1f680}-\u{1f6ff}\u{2600}-\u{26ff}\u{2700}-\u{27bf}\u{1f1e6}-\u{1f1ff}\u{1f191}-\u{1f251}\u{1f004}\u{1f0cf}\u{1f170}-\u{1f171}\u{1f17e}-\u{1f17f}\u{1f18e}\u{3030}\u{2b50}\u{2b55}\u{2934}-\u{2935}\u{2b05}-\u{2b07}\u{2b1b}-\u{2b1c}\u{3297}\u{3299}\u{303d}\u{00a9}\u{00ae}\u{2122}\u{23f3}\u{24c2}\u{23e9}-\u{23ef}\u{25b6}\u{23f8}-\u{23fa}]/gu, '');
     
+    // 获取音色设置
+    let voiceType = '';
+    if (savedSettings) {
+      const settings = JSON.parse(savedSettings);
+      voiceType = settings.voiceType || '';
+    }
+    
+    // 构建API URL，如果设置了音色则添加voice参数
+    let apiUrl = `https://api.jkyai.top/API/jhyysc.php?msg=${encodeURIComponent(textWithoutEmojis)}`;
+    if (voiceType) {
+      apiUrl += `&voice=${voiceType}`;
+    }
+    
     // 调用API获取语音URL
-    const response = await fetch(`https://api.jkyai.top/API/jhyysc.php?msg=${encodeURIComponent(textWithoutEmojis)}`);
+    const response = await fetch(apiUrl);
     const data = await response.json();
     
     if (data.success && data.url) {
@@ -1406,7 +2122,33 @@ function loadSettings() {
     
     // 应用AI模型设置
     if (settings.aiModel) {
+      // 检查并应用模型可用性状态
+      const availability = JSON.parse(localStorage.getItem('aiModelAvailability') || '{}');
+      updateModelSelectDisplay(availability, settings.aiModel);
+      
       aiModelSelect.value = settings.aiModel;
+      
+      // 显示或隐藏Ollama设置
+      if (settings.aiModel === 'ollama') {
+        const ollamaSettings = document.getElementById('ollamaSettings');
+        if (ollamaSettings) {
+          ollamaSettings.style.display = 'block';
+          // 设置Ollama服务器地址
+          if (settings.ollamaServerUrl) {
+            document.getElementById('ollamaServerUrl').value = settings.ollamaServerUrl;
+          }
+          // 设置Ollama模型
+          if (settings.ollamaModel) {
+            document.getElementById('ollamaModelSelect').value = settings.ollamaModel;
+          }
+        }
+      } else {
+        const ollamaSettings = document.getElementById('ollamaSettings');
+        if (ollamaSettings) {
+          ollamaSettings.style.display = 'none';
+        }
+      }
+      
       // 显示或隐藏自定义模型设置
       if (settings.aiModel === 'custom' && settings.customModelUrl) {
         customModelSettings.style.display = 'block';
@@ -1415,14 +2157,106 @@ function loadSettings() {
         customModelSettings.style.display = 'none';
       }
     } else {
+      // 检查并应用模型可用性状态
+      const availability = JSON.parse(localStorage.getItem('aiModelAvailability') || '{}');
+      updateModelSelectDisplay(availability, 'deepseek');
+      
       aiModelSelect.value = 'deepseek'; // 默认为Deepseek
       customModelSettings.style.display = 'none';
+      
+      // 确保Ollama设置区域隐藏
+      const ollamaSettings = document.getElementById('ollamaSettings');
+      if (ollamaSettings) {
+        ollamaSettings.style.display = 'none';
+      }
+    }
+    
+    // 应用音色设置
+    if (settings.voiceType) {
+      voiceTypeSelect && (voiceTypeSelect.value = settings.voiceType);
+    }
+    
+    // 根据语音开关状态显示或隐藏音色设置
+    if (voiceToggle.checked) {
+      voiceTypeSetting.style.display = 'block';
+    } else {
+      voiceTypeSetting.style.display = 'none';
+    }
+    
+    // 应用开机自启动设置
+    if (settings.autoLaunch !== undefined) {
+      autoLaunchToggle.checked = settings.autoLaunch;
+      // 尝试更新主进程中的自启动设置
+      if (window.electronAPI && window.electronAPI.setAutoLaunch) {
+        window.electronAPI.setAutoLaunch(settings.autoLaunch);
+      }
+    }
+    
+    // 应用悬浮球显示设置
+    if (settings.showFloatingBall !== undefined) {
+      floatingBallToggle.checked = settings.showFloatingBall;
+    } else {
+      floatingBallToggle.checked = true; // 默认显示悬浮球
+    }
+    
+    // 应用天气API密钥设置
+    if (settings.weatherApiKey !== undefined) {
+      const weatherApiKeyInput = document.getElementById('weatherApiKeyInput');
+      if (weatherApiKeyInput) {
+        weatherApiKeyInput.value = settings.weatherApiKey;
+      }
+    }
+    
+    // 应用动画输出设置
+    if (settings.animationOutput !== undefined) {
+      const animationOutputToggle = document.getElementById('animationOutputToggle');
+      if (animationOutputToggle) {
+        animationOutputToggle.checked = settings.animationOutput;
+      }
+    }
+    
+    // 应用快捷键设置
+    if (settings.shortcutKey) {
+      // 从设置的快捷键中提取按键部分
+      const shortcutParts = settings.shortcutKey.split('+');
+      const key = shortcutParts[shortcutParts.length - 1];
+      shortcutKeyInput.value = key;
+    } else {
+      shortcutKeyInput.value = 'R';
     }
   } else {
     // 默认设置
     voiceToggle.checked = true;
     aiModelSelect.value = 'deepseek'; // 默认为Deepseek
     customModelSettings.style.display = 'none';
+    
+    // 默认显示音色设置（因为语音默认启用）
+    voiceTypeSetting.style.display = 'block';
+    
+    // 默认不启用开机自启动
+    autoLaunchToggle.checked = false;
+    
+    // 默认显示悬浮球
+    floatingBallToggle.checked = true;
+    
+    // 默认启用动画输出
+    const animationOutputToggle = document.getElementById('animationOutputToggle');
+    if (animationOutputToggle) {
+      animationOutputToggle.checked = true; // 默认启用动画输出
+    }
+    
+    // 默认快捷键为R
+    shortcutKeyInput.value = 'R';
+    
+    // 确保天气API密钥输入框存在且清空
+    const weatherApiKeyInput = document.getElementById('weatherApiKeyInput');
+    if (weatherApiKeyInput) {
+      weatherApiKeyInput.value = '';
+    }
+    
+    // 默认应用深色主题
+    document.body.classList.add('dark-theme');
+    themeSelect.value = 'dark';
   }
 }
 
@@ -1432,12 +2266,27 @@ function saveSettings() {
     theme: themeSelect.value,
     contextCount: contextSelect.value,
     voiceEnabled: voiceToggle.checked,
-    aiModel: aiModelSelect.value
+    aiModel: aiModelSelect.value,
+    voiceType: voiceTypeSelect ? voiceTypeSelect.value : '',
+    autoLaunch: autoLaunchToggle.checked,
+    showFloatingBall: floatingBallToggle.checked,
+    animationOutput: animationOutputToggle ? animationOutputToggle.checked : false,
+    weatherApiKey: document.getElementById('weatherApiKeyInput') ? document.getElementById('weatherApiKeyInput').value : '',
+    ollamaServerUrl: document.getElementById('ollamaServerUrl') ? document.getElementById('ollamaServerUrl').value : 'http://localhost:11434',
+    ollamaModel: document.getElementById('ollamaModelSelect') ? document.getElementById('ollamaModelSelect').value : ''
   };
   
   // 如果是自定义模型，保存自定义模型URL
   if (aiModelSelect.value === 'custom') {
     settings.customModelUrl = customModelUrl.value;
+  }
+  
+  // 保存快捷键设置
+  if (shortcutKeyInput && shortcutPrefix) {
+    const shortcutKey = shortcutKeyInput.value.trim();
+    if (shortcutKey) {
+      settings.shortcutKey = shortcutPrefix.textContent + shortcutKey.toUpperCase();
+    }
   }
   
   localStorage.setItem('xiaor-settings', JSON.stringify(settings));
@@ -1449,8 +2298,43 @@ function saveSettings() {
     document.body.classList.remove('dark-theme');
   }
   
+  // 更新主进程中的自启动设置
+  if (window.electronAPI && window.electronAPI.setAutoLaunch) {
+    window.electronAPI.setAutoLaunch(autoLaunchToggle.checked);
+  }
+  
   console.log('设置已保存:', settings);
 }
+
+// 设置面板标签页切换功能
+function initializeSettingsTabs() {
+  const tabButtons = document.querySelectorAll('.tab-button');
+  
+  tabButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      // 移除所有按钮的active类
+      tabButtons.forEach(btn => btn.classList.remove('active'));
+      
+      // 添加active类到当前按钮
+      button.classList.add('active');
+      
+      // 隐藏所有标签内容
+      document.querySelectorAll('.settings-tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      
+      // 显示对应的内容
+      const tabId = button.getAttribute('data-tab');
+      const tabContent = document.getElementById(tabId);
+      if (tabContent) {
+        tabContent.classList.add('active');
+      }
+    });
+  });
+}
+
+// 初始化设置面板标签页
+initializeSettingsTabs();
 
 // 设置面板事件监听器
 settingsButton.addEventListener('click', () => {
@@ -1464,11 +2348,63 @@ aiModelSelect.addEventListener('change', () => {
   } else {
     customModelSettings.style.display = 'none';
   }
+  
+  // 只有在选择Ollama模型时才显示Ollama设置
+  const ollamaSettings = document.getElementById('ollamaSettings');
+  if (ollamaSettings) {
+    if (aiModelSelect.value === 'ollama') {
+      ollamaSettings.style.display = 'block';
+    } else {
+      ollamaSettings.style.display = 'none';
+    }
+  }
+});
+
+// 语音开关变化事件监听器
+voiceToggle.addEventListener('change', () => {
+  if (voiceToggle.checked) {
+    voiceTypeSetting.style.display = 'block';
+  } else {
+    voiceTypeSetting.style.display = 'none';
+  }
+});
+
+// 悬浮球开关事件监听器
+floatingBallToggle.addEventListener('change', () => {
+  // 通知主进程更新悬浮球显示状态
+  if (window.electronAPI && window.electronAPI.updateFloatingBallVisibility) {
+    window.electronAPI.updateFloatingBallVisibility(floatingBallToggle.checked);
+  }
 });
 
 saveSettingsButton.addEventListener('click', () => {
   saveSettings();
   settingsPanel.classList.remove('active');
+});
+
+// 快捷键设置按钮事件监听器
+setShortcutButton.addEventListener('click', () => {
+  const newShortcutKey = shortcutKeyInput.value.trim();
+  if (newShortcutKey) {
+    const newShortcut = shortcutPrefix.textContent + newShortcutKey.toUpperCase();
+    
+    // 通知主进程更新快捷键
+    if (window.electronAPI && window.electronAPI.updateShortcut) {
+      window.electronAPI.updateShortcut(newShortcut);
+      showNotification('快捷键已更新: ' + newShortcut);
+    }
+    
+    // 更新本地存储中的快捷键设置
+    const savedSettings = localStorage.getItem('xiaor-settings');
+    let settings = {};
+    if (savedSettings) {
+      settings = JSON.parse(savedSettings);
+    }
+    settings.shortcutKey = newShortcut;
+    localStorage.setItem('xiaor-settings', JSON.stringify(settings));
+  } else {
+    showNotification('请输入有效的快捷键');
+  }
 });
 
 closeSettingsButton.addEventListener('click', () => {
@@ -1477,10 +2413,8 @@ closeSettingsButton.addEventListener('click', () => {
   settingsPanel.classList.remove('active');
 });
 
-clearDataButton.addEventListener('click', () => {
-  if (confirm('确定要清除所有数据吗？此操作不可恢复！')) {
-    clearAllUserData();
-  }
+clearDataButton.addEventListener('click', async () => {
+  await clearAllUserData();
 });
 
 // 点击设置面板外部关闭面板
@@ -1602,6 +2536,18 @@ stopVoiceButton.addEventListener('click', () => {
 // 初始化设置
 loadSettings();
 
+// 应用悬浮球设置 - 通知主进程更新悬浮球可见性
+setTimeout(() => {
+  if (window.electronAPI && window.electronAPI.updateFloatingBallVisibility) {
+    window.electronAPI.updateFloatingBallVisibility(floatingBallToggle.checked);
+  }
+}, 1000); // 延迟1秒执行，确保主进程已准备好接收消息
+
+// 检查AI模型可用性
+setTimeout(() => {
+  checkAIModelAvailability();
+}, 1000); // 延迟1秒执行，确保页面元素已加载
+
 // 新对话功能
 function startNewChat() {
   // 创建新对话
@@ -1614,7 +2560,7 @@ function startNewChat() {
   }
   
   // 显示欢迎消息
-  addMessageToHistory('您好！我是小R AI助手，有什么可以帮助您的吗？', false);
+  addMessageToHistory('您好！我是小R AI助手，有什么可以帮助您的吗？', false, null, false);
   
   console.log('已开始新对话');
 }
@@ -1630,6 +2576,147 @@ function getCurrentConversation() {
     return null;
   }
   return allConversations.find(conv => conv.id === currentConversationId);
+}
+
+// 检查AI模型可用性
+async function checkAIModelAvailability() {
+  const modelEndpoints = {
+    'deepseek': 'https://api.jkyai.top/API/depsek3.2.php',
+    'claude': 'https://api.jkyai.top/API/doubao.php',
+    'yuanbao': 'https://api.jkyai.top/API/yuanbao.php',
+    'qwen3': 'https://api.jkyai.top/API/qwen3.php',
+    'ling': 'https://api.jkyai.top/API/ling-1t.php',
+    'gemini': 'https://api.jkyai.top/API/gemini2.5/index.php'
+  };
+  
+  const modelNames = {
+    'deepseek': 'DeepseekV3.2',
+    'claude': '豆包',
+    'yuanbao': '腾讯元宝',
+    'qwen3': 'Qwen3',
+    'ling': '蚂蚁Ling2.0',
+    'gemini': 'Gemini-2.5'
+  };
+  
+  // 获取当前选择的AI模型
+  const savedSettings = localStorage.getItem('xiaor-settings');
+  let currentModel = 'deepseek'; // 默认为Deepseek
+  if (savedSettings) {
+    const settings = JSON.parse(savedSettings);
+    currentModel = settings.aiModel || 'deepseek';
+  }
+  
+  // 检查每个模型的可用性
+  const availability = {};
+  for (const [model, endpoint] of Object.entries(modelEndpoints)) {
+    try {
+      // 所有模型API都需要参数，使用GET方法发送带参数的测试请求
+      const url = new URL(endpoint);
+      url.searchParams.append('question', '测试连接');
+      url.searchParams.append('system', '测试系统提示');
+      
+      const getResponse = await fetch(url.toString(), { method: 'GET' });
+      availability[model] = getResponse.ok;
+    } catch (error) {
+      console.warn(`${modelNames[model]} 模型连接失败:`, error);
+      availability[model] = false;
+    }
+  }
+  
+  // 保存可用性状态到localStorage
+  localStorage.setItem('aiModelAvailability', JSON.stringify(availability));
+  
+  // 更新下拉菜单显示
+  updateModelSelectDisplay(availability, currentModel);
+}
+
+// 更新模型选择下拉菜单显示
+function updateModelSelectDisplay(availability, currentModel) {
+  const selectElement = document.getElementById('aiModelSelect');
+  if (!selectElement) return;
+  
+  // 保存当前选择
+  const currentSelection = selectElement.value;
+  
+  // 清空选项
+  selectElement.innerHTML = '';
+  
+  // 重新添加选项，根据可用性添加提示
+  const options = [
+    { value: 'deepseek', text: 'DeepseekV3.2' },
+    { value: 'claude', text: '豆包' },
+    { value: 'yuanbao', text: '腾讯元宝' },
+    { value: 'qwen3', text: 'Qwen3' },
+    { value: 'ling', text: '蚂蚁Ling2.0' },
+    { value: 'gemini', text: 'Gemini-2.5' },
+    { value: 'custom', text: '自定义模型' },
+    { value: 'ollama', text: 'Ollama本地模型' }
+  ];
+  
+  options.forEach(option => {
+    const optionElement = document.createElement('option');
+    optionElement.value = option.value;
+    
+    if (option.value !== 'custom' && option.value !== 'ollama') { // 自定义模型和Ollama模型不检查可用性
+      if (!availability[option.value]) {
+        optionElement.text = `${option.text} (可能暂时无法使用)`;
+      } else {
+        optionElement.text = option.text;
+      }
+    } else {
+      optionElement.text = option.text;
+    }
+    
+    selectElement.appendChild(optionElement);
+  });
+  
+  // 恢复原来的选择
+  selectElement.value = currentSelection;
+  
+  // 计算不可用模型数量并显示提示
+  const unavailableCount = Object.keys(availability).filter(model => !availability[model]).length;
+  
+  // 显示不可用模型信息
+  const modelAvailabilityInfo = document.getElementById('modelAvailabilityInfo');
+  const modelUnavailableCount = document.getElementById('modelUnavailableCount');
+  const ignoreModelErrorBtn = document.getElementById('ignoreModelErrorBtn');
+  
+  if (modelAvailabilityInfo && modelUnavailableCount) {
+    if (unavailableCount > 0) {
+      modelUnavailableCount.textContent = `${unavailableCount}个模型可能无法正常使用`;
+      modelAvailabilityInfo.style.display = 'block';
+      
+      // 添加或更新忽略错误按钮事件监听器
+      if (ignoreModelErrorBtn && !ignoreModelErrorBtn.dataset.listenerAdded) {
+        ignoreModelErrorBtn.addEventListener('click', () => {
+          // 将所有模型标记为可用
+          const allModelsAvailability = {
+            'deepseek': true,
+            'claude': true,
+            'yuanbao': true,
+            'qwen3': true,
+            'ling': true,
+            'gemini': true,
+            'ollama': true
+          };
+          
+          // 保存到本地存储
+          localStorage.setItem('aiModelAvailability', JSON.stringify(allModelsAvailability));
+          
+          // 重新更新显示
+          updateModelSelectDisplay(allModelsAvailability, currentModel);
+          
+          // 隐藏提示信息
+          modelAvailabilityInfo.style.display = 'none';
+          
+          showNotification('已忽略模型错误，所有模型现在显示为可用');
+        });
+        ignoreModelErrorBtn.dataset.listenerAdded = 'true'; // 标记监听器已添加
+      }
+    } else {
+      modelAvailabilityInfo.style.display = 'none';
+    }
+  }
 }
 
 // 获取当前对话的历史记录
@@ -1652,6 +2739,28 @@ async function saveAllConversations() {
     await window.electronAPI.saveAllConversations(allConversations);
   } catch (error) {
     console.error('保存所有对话失败:', error);
+  }
+}
+
+// 将指定对话移到列表顶部
+function moveConversationToTop(conversationId) {
+  const index = allConversations.findIndex(conv => conv.id === conversationId);
+  
+  if (index !== -1) {
+    // 从数组中移除该对话
+    const [conversation] = allConversations.splice(index, 1);
+    
+    // 将对话移到数组开头
+    allConversations.unshift(conversation);
+    
+    // 更新对话的更新时间
+    conversation.updatedAt = new Date().toISOString();
+    
+    // 保存更改
+    saveAllConversations();
+    
+    // 更新对话列表显示
+    updateChatListDisplay();
   }
 }
 
@@ -1690,7 +2799,7 @@ function switchToConversation(conversationId) {
     // 重新加载当前对话的历史
     const history = getConversationHistory();
     history.forEach(item => {
-      addMessageToHistory(item.content, item.role === 'user');
+      addMessageToHistory(item.content, item.role === 'user', null, false);
     });
     
     // 更新对话列表显示
@@ -1800,13 +2909,13 @@ function deleteConversation(conversationId) {
           // 重新加载当前对话的历史
           const history = getConversationHistory();
           history.forEach(item => {
-            addMessageToHistory(item.content, item.role === 'user');
+            addMessageToHistory(item.content, item.role === 'user', null, false);
           });
         } else {
           // 如果没有其他对话了，创建新对话
           currentConversationId = null;
           chatHistory.innerHTML = '';
-          addMessageToHistory('您好！我是小R AI助手，有什么可以帮助您的吗？', false);
+          addMessageToHistory('您好！我是小R AI助手，有什么可以帮助您的吗？', false, null, false);
         }
       } else {
         // 删除非当前对话
@@ -1923,6 +3032,22 @@ function updateSkillButtonStates() {
       translationMenuButton.classList.remove('active-skill');
     }
   }
+  
+  if (codeAssistantMenuButton) {
+    if (activeSkillMode === 'codeAssistant') {
+      codeAssistantMenuButton.classList.add('active-skill');
+    } else {
+      codeAssistantMenuButton.classList.remove('active-skill');
+    }
+  }
+  
+  if (weatherMenuButton) {
+    if (activeSkillMode === 'weather') {
+      weatherMenuButton.classList.add('active-skill');
+    } else {
+      weatherMenuButton.classList.remove('active-skill');
+    }
+  }
 }
 
 // 翻译功能
@@ -1958,5 +3083,225 @@ if (translationButton) {
   translationButton.addEventListener('click', handleTranslation);
 }
 
-// 新对话功能
+// Ollama相关功能
+
+// 测试Ollama连接
+async function testOllamaConnection() {
+  const serverUrl = document.getElementById('ollamaServerUrl').value || 'http://localhost:11434';
+  const statusElement = document.getElementById('ollamaConnectionStatus');
+  const indicatorElement = document.getElementById('ollamaConnectionIndicator');
+  
+  if (statusElement && indicatorElement) {
+    statusElement.textContent = '连接中...';
+    indicatorElement.className = 'status-indicator connecting';
+  }
+  
+  try {
+    // 测试连接
+    const response = await fetch(`${serverUrl}/api/tags`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      
+      if (statusElement && indicatorElement) {
+        statusElement.textContent = '连接成功';
+        indicatorElement.className = 'status-indicator connected';
+      }
+      
+      // 获取模型列表并填充到下拉菜单
+      updateOllamaModelList(data.models || []);
+      
+      showNotification('Ollama连接成功！');
+      return true;
+    } else {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+  } catch (error) {
+    console.error('Ollama连接测试失败:', error);
+    
+    if (statusElement && indicatorElement) {
+      statusElement.textContent = `连接失败: ${error.message || '未知错误'}`;
+      indicatorElement.className = 'status-indicator disconnected';
+    }
+    
+    showNotification(`Ollama连接失败: ${error.message || '未知错误'}`);
+    return false;
+  }
+}
+
+// 更新Ollama模型列表
+function updateOllamaModelList(models) {
+  const modelSelect = document.getElementById('ollamaModelSelect');
+  if (!modelSelect) return;
+  
+  // 清空现有选项
+  modelSelect.innerHTML = '';
+  
+  if (models.length === 0) {
+    const option = document.createElement('option');
+    option.value = '';
+    option.textContent = '未找到可用模型';
+    modelSelect.appendChild(option);
+    return;
+  }
+  
+  // 添加模型选项
+  models.forEach(model => {
+    const option = document.createElement('option');
+    option.value = model.name;
+    option.textContent = model.name;
+    modelSelect.appendChild(option);
+  });
+}
+
+// 刷新Ollama模型列表
+async function refreshOllamaModels() {
+  const serverUrl = document.getElementById('ollamaServerUrl').value || 'http://localhost:11434';
+  const statusElement = document.getElementById('ollamaConnectionStatus');
+  
+  if (statusElement) {
+    statusElement.textContent = '获取模型列表...';
+  }
+  
+  try {
+    const response = await fetch(`${serverUrl}/api/tags`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      updateOllamaModelList(data.models || []);
+      
+      if (statusElement) {
+        statusElement.textContent = '连接成功';
+      }
+      
+      showNotification('模型列表已刷新');
+    } else {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+  } catch (error) {
+    console.error('获取Ollama模型列表失败:', error);
+    
+    if (statusElement) {
+      statusElement.textContent = `获取模型失败: ${error.message || '未知错误'}`;
+    }
+    
+    showNotification(`获取模型列表失败: ${error.message || '未知错误'}`);
+  }
+}
+
+// 初始化Ollama相关事件监听器
+function initializeOllamaSettings() {
+  const testConnectionBtn = document.getElementById('testOllamaConnection');
+  const refreshModelsBtn = document.getElementById('refreshOllamaModels');
+  
+  if (testConnectionBtn) {
+    testConnectionBtn.addEventListener('click', testOllamaConnection);
+  }
+  
+  if (refreshModelsBtn) {
+    refreshModelsBtn.addEventListener('click', refreshOllamaModels);
+  }
+  
+  // 设置默认服务器地址
+  const serverUrlInput = document.getElementById('ollamaServerUrl');
+  if (serverUrlInput && !serverUrlInput.value) {
+    serverUrlInput.value = 'http://localhost:11434';
+  }
+}
+
+// 初始化Ollama设置
+initializeOllamaSettings();
+
+// 窗口控制按钮事件监听器
+window.addEventListener('DOMContentLoaded', () => {
+  const minimizeBtn = document.getElementById('minimizeBtn');
+  const maximizeBtn = document.getElementById('maximizeBtn');
+  const closeBtn = document.getElementById('closeBtn');
+  
+  if (minimizeBtn) {
+    minimizeBtn.addEventListener('click', async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (window.electronAPI && window.electronAPI.minimizeWindow) {
+        try {
+          await window.electronAPI.minimizeWindow();
+        } catch (error) {
+          console.error('最小化窗口失败:', error);
+        }
+      }
+    });
+  }
+  
+  if (maximizeBtn) {
+    maximizeBtn.addEventListener('click', async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (window.electronAPI && window.electronAPI.maximizeWindow) {
+        try {
+          await window.electronAPI.maximizeWindow();
+        } catch (error) {
+          console.error('最大化/还原窗口失败:', error);
+        }
+      }
+    });
+  }
+  
+  if (closeBtn) {
+    closeBtn.addEventListener('click', async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (window.electronAPI && window.electronAPI.closeWindow) {
+        try {
+          await window.electronAPI.closeWindow();
+        } catch (error) {
+          console.error('关闭窗口失败:', error);
+        }
+      }
+    });
+  }
+
+  // 监听从迷你输入框发送的消息
+  if (window.electronAPI && window.electronAPI.onMiniInputMessage) {
+    window.electronAPI.onMiniInputMessage((params) => {
+      console.log('通过IPC收到从迷你输入框发送的消息:', params);
+      
+      // 在主界面中处理消息
+      if (params.question) {
+        // 添加用户消息到聊天历史
+        addMessageToHistory(params.question, true);
+        
+        // 发送消息到AI，使用设置中的模型（忽略传递的模型参数）
+        sendToAI(params.question);
+      }
+    });
+  }
+
+  // 也监听全局IPC消息
+  if (window.require) {
+    const { ipcRenderer } = require('electron');
+    ipcRenderer.on('mini-input-message', (event, params) => {
+      console.log('通过全局IPC收到从迷你输入框发送的消息:', params);
+      
+      // 在主界面中处理消息
+      if (params.question) {
+        // 添加用户消息到聊天历史
+        addMessageToHistory(params.question, true);
+        
+        // 发送消息到AI，使用设置中的模型（忽略传递的模型参数）
+        sendToAI(params.question);
+      }
+    });
+  }
+});
+
 

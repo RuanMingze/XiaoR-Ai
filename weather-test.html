@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>天气API测试工具</title>
+    <style>
+        :root {
+            --bg-gradient-start: #74b9ff;
+            --bg-gradient-end: #0984e3;
+            --container-bg: white;
+            --text-color: #2d3436;
+            --label-color: #2d3436;
+            --input-border: #ddd;
+            --button-bg: #0984e3;
+            --button-hover: #74b9ff;
+            --result-bg: #f8f9fa;
+            --error-bg: #ffeaa7;
+            --error-text: #d63031;
+            --success-bg: #55efc4;
+            --success-text: #00b894;
+            --info-bg: #74b9ff;
+            --info-text: #fff;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        body.dark-theme {
+            --bg-gradient-start: #2d3436;
+            --bg-gradient-end: #1e272e;
+            --container-bg: #2d2d2d;
+            --text-color: #f5f6fa;
+            --label-color: #f5f6fa;
+            --input-border: #555;
+            --button-bg: #007acc;
+            --button-hover: #005a99;
+            --result-bg: #3c3c3c;
+            --error-bg: #4a232a;
+            --error-text: #ff6b6b;
+            --success-bg: #2a4d43;
+            --success-text: #55efc4;
+            --info-bg: #4a637d;
+            --info-text: #e6f7ff;
+        }
+        
+        .container {
+            background: var(--container-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+        
+        h1 {
+            color: var(--text-color);
+            margin-bottom: 30px;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--label-color);
+            font-weight: 500;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--input-border);
+            border-radius: 6px;
+            font-size: 16px;
+            box-sizing: border-box;
+            background: var(--container-bg);
+            color: var(--text-color);
+        }
+        
+        button {
+            background: var(--button-bg);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            margin: 10px 5px;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: var(--button-hover);
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            background: var(--result-bg);
+            text-align: left;
+            max-height: 400px;
+            overflow-y: auto;
+            color: var(--text-color);
+        }
+        
+        .error {
+            background: var(--error-bg);
+            color: var(--error-text);
+        }
+        
+        .success {
+            background: var(--success-bg);
+            color: var(--success-text);
+        }
+        
+        .info {
+            background: var(--info-bg);
+            color: var(--info-text);
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌤️ 天气API测试工具</h1>
+        
+        <div class="input-group">
+            <label for="apiKey">API密钥:</label>
+            <input type="password" id="apiKey" placeholder="输入您的OpenWeatherMap API密钥">
+        </div>
+        
+        <div class="input-group">
+            <label for="city">城市名称 (拼音):</label>
+            <input type="text" id="city" placeholder="例如: Beijing, Shanghai, Deqing">
+        </div>
+        
+        <button id="testBtn">测试天气API</button>
+        <button id="sampleBtn">使用示例数据测试</button>
+        
+        <div id="result" class="result hidden"></div>
+    </div>
+
+    <script>
+        // 天气API测试功能
+        async function testWeatherAPI(apiKey, city) {
+            try {
+                // 构建天气API请求URL
+                const weatherUrl = `http://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
+                
+                console.log('正在请求天气数据...');
+                console.log('请求URL:', weatherUrl);
+                
+                // 发起API请求
+                const response = await fetch(weatherUrl);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // 解析并显示天气信息
+                    console.log('天气数据获取成功！');
+                    return {
+                        success: true,
+                        data: {
+                            city: data.name,
+                            country: data.sys.country,
+                            temperature: data.main.temp,
+                            feelsLike: data.main.feels_like,
+                            description: data.weather[0].description,
+                            humidity: data.main.humidity,
+                            windSpeed: data.wind.speed,
+                            pressure: data.main.pressure,
+                            visibility: data.visibility ? data.visibility / 1000 : 'N/A' // 转换为km
+                        }
+                    };
+                } else {
+                    console.error('API请求失败:', data.message);
+                    return {
+                        success: false,
+                        error: data.message || '天气API请求失败'
+                    };
+                }
+            } catch (error) {
+                console.error('获取天气数据时发生错误:', error.message);
+                return {
+                    success: false,
+                    error: error.message
+                };
+            }
+        }
+
+        // 显示结果
+        function displayResult(result) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.classList.remove('hidden');
+            
+            if (result.success) {
+                const weather = result.data;
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <h3>✅ 天气信息获取成功！</h3>
+                    <p><strong>🏙️ 城市:</strong> ${weather.city} (${weather.country})</p>
+                    <p><strong>🌡️ 温度:</strong> ${weather.temperature}°C (体感 ${weather.feelsLike}°C)</p>
+                    <p><strong>☁️ 天气:</strong> ${weather.description}</p>
+                    <p><strong>💧 湿度:</strong> ${weather.humidity}%</p>
+                    <p><strong>💨 风速:</strong> ${weather.windSpeed} m/s</p>
+                    <p><strong>🔽 气压:</strong> ${weather.pressure} hPa</p>
+                    <p><strong>👁️ 能见度:</strong> ${weather.visibility} km</p>
+                    <p><strong>🕐 查询时间:</strong> ${new Date().toLocaleString('zh-CN')}</p>
+                `;
+            } else {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<h3>❌ 测试失败</h3><p><strong>错误信息:</strong> ${result.error}</p>`;
+            }
+        }
+
+        // 绑定事件
+        document.getElementById('testBtn').addEventListener('click', async () => {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const city = document.getElementById('city').value.trim();
+            
+            if (!apiKey || !city) {
+                alert('请填写完整的API密钥和城市名称');
+                return;
+            }
+            
+            // 显示加载状态
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'result info';
+            resultDiv.classList.remove('hidden');
+            resultDiv.innerHTML = '<p><span class="loading"></span> 正在获取天气数据...</p>';
+            
+            const result = await testWeatherAPI(apiKey, city);
+            displayResult(result);
+        });
+
+        // 示例测试按钮
+        document.getElementById('sampleBtn').addEventListener('click', async () => {
+            // 这里可以使用一个示例API密钥（实际使用时应该由用户输入）
+            const city = 'Beijing'; // 示例城市
+            document.getElementById('city').value = city;
+            
+            // 提示用户输入API密钥
+            alert('请先在上方输入您的API密钥，然后点击"测试天气API"按钮');
+        });
+
+        // 添加回车键支持
+        document.getElementById('city').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                document.getElementById('testBtn').click();
+            }
+        });
+        
+        document.getElementById('apiKey').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                document.getElementById('testBtn').click();
+            }
+        });
+        
+        // 监听主题变化
+        const themeObserver = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    // 当主题变化时，可以通过切换body上的dark-theme类来应用深色模式
+                }
+            });
+        });
+        
+        themeObserver.observe(document.body, {
+            attributes: true,
+            attributeFilter: ['class']
+        });
+    </script>
+</body>
+</html>

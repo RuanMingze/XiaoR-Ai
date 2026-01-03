@@ -18,6 +18,7 @@
     </script>
 </head>
 <body>
+
     <div class="container">
         <header>
             <h1>小R - AI助手</h1>
@@ -40,59 +41,164 @@
         <!-- 设置面板 -->
         <div id="settingsPanel" class="settings-panel">
             <div class="settings-content">
-                <h3>设置</h3>
+                <span id="closeSettings" class="close-settings-btn">&times;</span>
                 
-                <div class="setting-item">
-                    <label for="themeSelect">主题:</label>
-                    <select id="themeSelect">
-                        <option value="light">浅色</option>
-                        <option value="dark">深色</option>
-                    </select>
+                <!-- 设置标签页 -->
+                <div class="settings-tabs">
+                    <button class="tab-button active" data-tab="ai-settings">AI设置</button>
+                    <button class="tab-button" data-tab="app-settings">应用设置</button>
                 </div>
                 
-                <div class="setting-item">
-                    <label for="contextSelect">上下文对话数量:</label>
-                    <select id="contextSelect">
-                        <option value="0">不启用上下文</option>
-                        <option value="2">1轮对话（用户+AI）</option>
-                        <option value="4" selected>2轮对话（用户+AI）</option>
-                        <option value="6">3轮对话（用户+AI）</option>
-                        <option value="8">4轮对话（用户+AI）</option>
-                        <option value="10">5轮对话（用户+AI）</option>
-                        <option value="all">完整历史</option>
-                    </select>
-                </div>
-                
-                <div class="setting-item">
-                    <label>
-                        <input type="checkbox" id="voiceToggle" checked> 启用AI语音回复
-                    </label>
-                </div>
-                
-                <div class="setting-item">
-                    <label for="aiModelSelect">AI模型:</label>
-                    <select id="aiModelSelect">
-                        <option value="deepseek">DeepseekV3.2</option>
-                        <option value="claude">豆包</option>
-                        <option value="yuanbao">腾讯元宝</option>
-                        <option value="qwen3">Qwen3</option>
-                        <option value="custom">自定义模型</option>
-                    </select>
-                </div>
-                
-                <div id="customModelSettings" class="setting-item" style="display: none;">
-                    <label for="customModelUrl">自定义模型API接口:</label>
-                    <input type="text" id="customModelUrl" placeholder="https://www.ai.com/Deepseek.php?q=%提问内容%&s=%联想词%">
-                    <div class="custom-model-help">
-                        参数说明：<br>
-                        %提问内容% - 替换为用户的问题<br>
-                        %联想词% - 替换为system提示词
+                <!-- AI设置栏目 -->
+                <div id="ai-settings" class="settings-tab-content active">
+                    <div class="setting-item">
+                        <label for="aiModelSelect">AI模型:</label>
+                        <select id="aiModelSelect">
+                            <option value="deepseek">DeepseekV3.2</option>
+                            <option value="claude">豆包</option>
+                            <option value="yuanbao">腾讯元宝</option>
+                            <option value="qwen3">Qwen3</option>
+                            <option value="ling">蚂蚁Ling2.0</option>
+                            <option value="gemini">Gemini-2.5</option>
+                            <option value="custom">自定义模型</option>
+                            <option value="ollama">Ollama本地模型</option>
+                        </select>
+                        <div id="modelAvailabilityInfo" class="model-availability-info" style="margin-top: 5px; font-size: 0.8em; color: #666; display: none;">
+                            <span id="modelUnavailableCount"></span>
+                            <button id="ignoreModelErrorBtn" class="ignore-model-error-btn" style="margin-left: 10px; padding: 2px 8px; font-size: 0.8em; background: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer;">忽略错误</button>
+                        </div>
+                    </div>
+                    
+                    <div id="customModelSettings" class="setting-item" style="display: none;">
+                        <label for="customModelUrl">自定义模型API接口:</label>
+                        <input type="text" id="customModelUrl" placeholder="https://www.ai.com/Deepseek.php?q=%提问内容%&s=%联想词%">
+                        <div class="custom-model-help">
+                            参数说明：<br>
+                            %提问内容% - 替换为用户的问题<br>
+                            %联想词% - 替换为system提示词
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label for="contextSelect">上下文对话数量:</label>
+                        <select id="contextSelect">
+                            <option value="0">不启用上下文</option>
+                            <option value="2">1轮对话（用户+AI）</option>
+                            <option value="4" selected>2轮对话（用户+AI）</option>
+                            <option value="6">3轮对话（用户+AI）</option>
+                            <option value="8">4轮对话（用户+AI）</option>
+                            <option value="10">5轮对话（用户+AI）</option>
+                            <option value="all">完整历史</option>
+                        </select>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="voiceToggle" checked> 启用AI语音回复
+                        </label>
+                    </div>
+                    
+                    <div id="voiceTypeSetting" class="setting-item" style="display: none;">
+                        <label for="voiceTypeSelect">音色选择:</label>
+                        <select id="voiceTypeSelect">
+                            <option value="">默认女声</option>
+                            <option value="zh-HK-HiuGaaiNeural">粤语女声 - 粤爱</option>
+                            <option value="zh-HK-HiuMaanNeural">粤语女声 - 粤曼</option>
+                            <option value="zh-HK-WanLungNeural">粤语男声 - 粤龙</option>
+                            <option value="zh-CN-XiaoxiaoNeural">普通话女声 - 晓晓</option>
+                            <option value="zh-CN-XiaoyiNeural">普通话女声 - 晓伊</option>
+                            <option value="zh-CN-YunjianNeural">普通话男声 - 云健</option>
+                            <option value="zh-CN-YunxiNeural">普通话男声 - 云希</option>
+                            <option value="zh-CN-YunxiaNeural">普通话男声 - 云夏</option>
+                            <option value="zh-CN-YunyangNeural">普通话男声 - 云扬</option>
+                            <option value="zh-CN-liaoning-XiaobeiNeural">东北女声 - 晓北</option>
+                            <option value="zh-TW-HsiaoChenNeural">台语女声 - 晓臻</option>
+                            <option value="zh-TW-YunJheNeural">台语男声 - 云哲</option>
+                            <option value="zh-TW-HsiaoYuNeural">台语女声 - 晓雨</option>
+                            <option value="zh-CN-shaanxi-XiaoniNeural">陕西女声 - 晓妮</option>
+                        </select>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="animationOutputToggle"> 启用动画输出（逐字显示）
+                        </label>
+                    </div>
+                    
+                    <div id="weatherApiKeySetting" class="setting-item">
+                        <label for="weatherApiKeyInput">天气API密钥:</label>
+                        <input type="password" id="weatherApiKeyInput" placeholder="输入您的API密钥">
+                    </div>
+                    
+                    <div id="ollamaSettings" class="setting-item" style="display: none;">
+                        <h4>Ollama本地模型设置</h4>
+                        
+                        <div class="ollama-setting-row">
+                            <label for="ollamaServerUrl">Ollama服务器地址:</label>
+                            <input type="text" id="ollamaServerUrl" placeholder="http://localhost:11434">
+                            <button id="testOllamaConnection" class="test-btn">测试连接</button>
+                        </div>
+                        
+                        <div class="ollama-setting-row">
+                            <div class="connection-status">
+                                <span id="ollamaConnectionStatus">未连接</span>
+                                <span id="ollamaConnectionIndicator" class="status-indicator"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="ollama-setting-row">
+                            <label for="ollamaModelSelect">选择模型:</label>
+                            <select id="ollamaModelSelect">
+                                <option value="">-- 请先连接服务器 --</option>
+                            </select>
+                            <button id="refreshOllamaModels" class="refresh-btn">刷新模型列表</button>
+                        </div>
                     </div>
                 </div>
                 
-                <button id="saveSettings" class="save-btn">保存设置</button>
-                <button id="clearDataButton" class="clear-data-btn">清除所有数据</button>
-                <button id="closeSettings" class="close-btn">关闭</button>
+                <!-- 应用设置栏目 -->
+                <div id="app-settings" class="settings-tab-content">
+                    <div class="setting-item">
+                        <label for="themeSelect">主题:</label>
+                        <select id="themeSelect">
+                            <option value="light">浅色</option>
+                            <option value="dark">深色</option>
+                        </select>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="snowToggle"> 启用新年雪花特效
+                        </label>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="autoLaunchToggle"> 开机自启动
+                        </label>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="floatingBallToggle"> 显示悬浮球
+                        </label>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label>快捷键:</label>
+                        <div class="shortcut-input-container">
+                            <span id="shortcutPrefix" class="shortcut-prefix">Ctrl+Alt+</span>
+                            <input type="text" id="shortcutKeyInput" placeholder="R" value="R" maxlength="1">
+                        </div>
+                        <button id="setShortcutButton" class="set-shortcut-btn">设置快捷键</button>
+                        <small>提示: 在输入框中输入单个按键</small>
+                    </div>
+                </div>
+                
+                <div class="settings-buttons">
+                    <button id="saveSettings" class="save-btn">保存设置</button>
+                    <button id="clearDataButton" class="clear-data-btn">清除所有数据</button>
+                </div>
             </div>
         </div>
         
@@ -129,6 +235,8 @@
         <button id="imageGenMenuButton" class="skill-menu-btn" title="AI图片生成">🖼️ 图片生成</button>
         <button id="imageOcrMenuButton" class="skill-menu-btn" title="图片OCR识别">🔍 OCR识别</button>
         <button id="translationMenuButton" class="skill-menu-btn" title="翻译助手">🌐 翻译</button>
+        <button id="codeAssistantMenuButton" class="skill-menu-btn" title="AI编程助手">💻 编程</button>
+        <button id="weatherMenuButton" class="skill-menu-btn" title="天气查询">🌤️ 天气查询</button>
     </div>
     
     <!-- 自定义提示框 -->
@@ -183,6 +291,7 @@
     </div>
     
     <script src="clearData.js"></script>
+        <script src="weather-test.js"></script>
         <script src="renderer.js"></script>
 </body>
 </html>

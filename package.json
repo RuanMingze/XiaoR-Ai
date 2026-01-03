@@ -1,15 +1,15 @@
 {
   "name": "xiaor-ai-assistant",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "小R助手",
   "main": "main.js",
   "scripts": {
-    "start": "electron .",
-    "dev": "cross-env NODE_ENV=development electron .",
+    "start": "chcp 65001 >nul && electron .",
+    "dev": "chcp 65001 >nul && cross-env NODE_ENV=development electron .",
     "build": "node build-script.js",
     "dist": "node build-script.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build&run": "npx electron-builder --dir && start .\\dist\\win-unpacked\\小R - AI助手.exe"
+    "test": "node test-menu.js",
+    "notlog-start": "set ELECTRON_NO_ATTACH_CONSOLE=1 && electron ."
   },
   "keywords": [
     "electron",
@@ -17,10 +17,9 @@
     "assistant"
   ],
   "author": "Ruanm",
-  "license": "MIT",
+  "license": "GPL-3.0-only",
   "devDependencies": {
     "cnpm": "^9.4.0",
-    "dmg-license": "^1.0.11",
     "electron": "^39.0.0",
     "electron-builder": "^26.0.12"
   },
@@ -44,6 +43,8 @@
     }
   },
   "dependencies": {
-    "asar": "^3.2.0"
+    "asar": "^3.2.0",
+    "electron-squirrel-startup": "^1.0.1",
+    "node-fetch": "^3.3.2"
   }
 }
