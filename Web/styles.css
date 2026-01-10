@@ -1,0 +1,2009 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f5f5f5;
+  color: #333;
+  height: 100vh;
+  overflow: hidden;
+  margin: 0;
+
+}
+
+/* 自定义滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* 深色主题下的滚动条 */
+body.dark-theme ::-webkit-scrollbar-track {
+  background: #3a3a3a;
+}
+
+body.dark-theme ::-webkit-scrollbar-thumb {
+  background: #5a5a5a;
+}
+
+body.dark-theme ::-webkit-scrollbar-thumb:hover {
+  background: #6a6a6a;
+}
+
+/* 自定义提示框样式 */
+.custom-alert, .custom-confirm, .custom-prompt {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+}
+
+.custom-alert .alert-content, .custom-confirm .confirm-content, .custom-prompt .prompt-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  min-width: 300px;
+  max-width: 500px;
+  position: relative;
+}
+
+.custom-alert .alert-header, .custom-confirm .confirm-header, .custom-prompt .prompt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.custom-alert .alert-title, .custom-confirm .confirm-title, .custom-prompt .prompt-title {
+  font-size: 1.2em;
+  font-weight: bold;
+}
+
+.custom-alert .alert-close, .custom-confirm .confirm-close, .custom-prompt .prompt-close {
+  font-size: 1.5em;
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: #999;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.custom-alert .alert-close:hover, .custom-confirm .confirm-close:hover, .custom-prompt .prompt-close:hover {
+  color: #333;
+  background-color: #f0f0f0;
+  border-radius: 50%;
+}
+
+.custom-alert .alert-body, .custom-confirm .confirm-body, .custom-prompt .prompt-body {
+  margin-bottom: 15px;
+}
+
+.custom-alert .alert-body p, .custom-confirm .confirm-body p, .custom-prompt .prompt-body p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.custom-alert .alert-footer, .custom-confirm .confirm-footer, .custom-prompt .prompt-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.custom-alert .alert-btn, .custom-confirm .confirm-btn, .custom-prompt .prompt-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1em;
+}
+
+.custom-confirm .confirm-btn.ok-btn, .custom-prompt .prompt-btn.ok-btn {
+  background-color: #4a90e2;
+  color: white;
+}
+
+.custom-confirm .confirm-btn.cancel-btn, .custom-prompt .prompt-btn.cancel-btn {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.custom-confirm .confirm-btn.ok-btn:hover {
+  background-color: #357ae8;
+}
+
+.custom-confirm .confirm-btn.cancel-btn:hover, .custom-prompt .prompt-btn.cancel-btn:hover {
+  background-color: #e0e0e0;
+}
+
+/* 深色主题下的自定义弹窗样式 */
+body.dark-theme .custom-alert .alert-content,
+body.dark-theme .custom-confirm .confirm-content,
+body.dark-theme .custom-prompt .prompt-content {
+  background-color: #333;
+  color: #e0e0e0;
+}
+
+body.dark-theme .custom-alert .alert-header,
+body.dark-theme .custom-confirm .confirm-header,
+body.dark-theme .custom-prompt .prompt-header {
+  border-bottom: 1px solid #555;
+}
+
+body.dark-theme .custom-alert .alert-close,
+body.dark-theme .custom-confirm .confirm-close,
+body.dark-theme .custom-prompt .prompt-close {
+  color: #aaa;
+}
+
+body.dark-theme .custom-alert .alert-close:hover,
+body.dark-theme .custom-confirm .confirm-close:hover,
+body.dark-theme .custom-prompt .prompt-close:hover {
+  color: #fff;
+  background-color: #555;
+}
+
+body.dark-theme .custom-confirm .confirm-btn.ok-btn {
+  background-color: #4a90e2;
+  color: white;
+}
+
+body.dark-theme .custom-confirm .confirm-btn.cancel-btn {
+  background-color: #555;
+  color: #e0e0e0;
+}
+
+body.dark-theme .custom-confirm .confirm-btn.cancel-btn:hover {
+  background-color: #666;
+}
+
+.container {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  background-color: #4a90e2;
+  color: white;
+  padding: 15px 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+header h1 {
+  font-size: clamp(1.2rem, 4vw, 2rem);
+  margin-bottom: 5px;
+}
+
+header p {
+  font-size: clamp(0.8rem, 2vw, 1rem);
+  opacity: 0.9;
+}
+
+main {
+  flex: 1;
+  overflow: hidden;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 100%;
+}
+
+.chat-history {
+  flex: 1;
+  overflow-y: auto;
+  padding: 15px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 15px;
+  max-height: calc(100vh - 232px);
+}
+
+.message {
+  margin-bottom: 12px;
+  padding: 10px 15px;
+  border-radius: 18px;
+  max-width: 90%;
+}
+
+.message.user {
+  background-color: #4a90e2;
+  color: white;
+  margin-left: auto;
+}
+
+.message.ai {
+  background-color: #f1f1f1;
+  color: #333;
+  margin-right: auto;
+}
+
+/* 深色主题下的消息样式 */
+body.dark-theme .message.ai {
+  background: #2a2a4a;
+  color: #f0f2f5;
+}
+
+body.dark-theme .message.user {
+  background: #5e72e4;
+  color: white;
+}
+
+/* 新年主题下的消息样式 */
+body.newyear-theme .message.ai {
+  background: rgba(255, 255, 255, 0.8);
+  color: #333;
+}
+
+body.newyear-theme .message.user {
+  background: #ff6b6b;
+  color: white;
+}
+
+/* Markdown 样式 */
+.message.ai h1 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin: 10px 0 5px 0;
+}
+
+.message.ai h2 {
+  font-size: 1.4rem;
+  font-weight: bold;
+  margin: 10px 0 5px 0;
+}
+
+.message.ai h3 {
+  font-size: 1.3rem;
+  font-weight: bold;
+  margin: 10px 0 5px 0;
+}
+
+.message.ai h4 {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin: 10px 0 5px 0;
+}
+
+.message.ai h5 {
+  font-size: 1.1rem;
+  font-weight: bold;
+  margin: 10px 0 5px 0;
+}
+
+.message.ai h6 {
+  font-size: 1rem;
+  font-weight: bold;
+  margin: 10px 0 5px 0;
+}
+
+.message.ai p {
+  margin: 5px 0;
+  line-height: 1.4;
+}
+
+.message.ai strong {
+  font-weight: bold;
+}
+
+.message.ai em {
+  font-style: italic;
+}
+
+.message.ai code {
+  background-color: #e0e0e0;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.message.ai pre {
+  background-color: #e0e0e0;
+  padding: 10px;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 10px 0;
+}
+
+.message.ai pre code {
+  background-color: transparent;
+  padding: 0;
+}
+
+.message.ai ul, .message.ai ol {
+  margin: 10px 0;
+  padding-left: 20px;
+}
+
+.message.ai li {
+  margin: 5px 0;
+}
+
+.message.ai a {
+  color: #4a90e2;
+  text-decoration: underline;
+}
+
+.message.ai a:hover {
+  color: #357ae8;
+}
+
+.input-area {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+#userInput {
+  flex: 1;
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  resize: none;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 1rem;
+  min-height: 50px;
+  max-height: 150px;
+}
+
+#sendButton {
+  padding: 33px 20px;
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: clamp(0.9rem, 2vw, 1rem);
+  transition: background-color 0.3s;
+  align-self: flex-end;
+  min-width: 80px;
+  width: fit-content;
+  white-space: nowrap;
+}
+
+#sendButton:hover {
+  background-color: #357ae8;
+}
+
+#sendButton:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* 停止按钮样式 */
+#sendButton.stop-btn {
+  background-color: #dc3545; /* 红色背景 */
+}
+
+#sendButton.stop-btn:hover {
+  background-color: #c82333; /* 深红色背景 */
+}
+
+.loading {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255,255,255,.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .container {
+    padding: 5px;
+  }
+  
+  header {
+    padding: 10px;
+  }
+  
+  main {
+    padding: 10px;
+  }
+  
+  .chat-history {
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  
+  .message {
+    max-width: 95%;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+  }
+  
+  #userInput {
+    padding: 10px 12px;
+    min-height: 45px;
+  }
+  
+  #sendButton {
+    padding: 10px 15px;
+    min-width: 70px;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  header h1 {
+    font-size: 1.3rem;
+  }
+  
+  header p {
+    font-size: 0.8rem;
+  }
+  
+  .message {
+    max-width: 98%;
+    padding: 6px 10px;
+    font-size: 0.85rem;
+  }
+  
+  #userInput {
+    padding: 8px 10px;
+    min-height: 40px;
+    font-size: 0.9rem;
+  }
+  
+  #sendButton {
+    padding: 8px 12px;
+    min-width: 60px;
+    font-size: 0.9rem;
+  }
+}
+
+/* 设置按钮 */
+.settings-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  transition: background-color 0.3s;
+}
+
+.settings-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* 设置面板 */
+.settings-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: none;
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+
+.settings-panel.active {
+  display: flex;
+}
+
+.settings-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  position: relative; /* 为关闭按钮定位 */
+}
+
+.close-settings-btn {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 1.5rem;
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: #333;
+  padding: 5px;
+  border-radius: 50%;
+  transition: background-color 0.3s;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+  line-height: 1; /* 确保字符垂直居中 */
+}
+
+/* 深色主题下的关闭按钮 */
+body.dark-theme .close-settings-btn {
+  color: #e0e0e0;
+}
+
+.setting-item {
+  margin-bottom: 15px;
+}
+
+.setting-item label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.model-availability-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 0;
+}
+
+.ignore-model-error-btn {
+  background-color: #f0f0f0;
+  color: #333;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 0.8em;
+  transition: background-color 0.3s;
+}
+
+.ignore-model-error-btn:hover {
+  background-color: #e0e0e0;
+}
+
+/* 深色主题下的忽略错误按钮 */
+body.dark-theme .ignore-model-error-btn {
+  background-color: #444 !important;
+  color: #e0e0e0 !important;
+  border: 1px solid #666 !important;
+}
+
+body.dark-theme .ignore-model-error-btn:hover {
+  background-color: #555 !important;
+}
+
+.setting-item select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.close-btn:not(.window-control-btn) {
+  padding: 10px 15px;
+  margin: 5px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  min-width: 100px;
+  text-align: center;
+  background-color: #ccc;
+  color: black;
+}
+
+.save-btn {
+  background-color: #4a90e2;
+  color: white;
+}
+
+.clear-data-btn {
+  background-color: #f44336; /* 红色 */
+  color: white;
+  border: none;
+  border-radius: 4px; /* 添加圆角 */
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: clamp(0.9rem, 2vw, 1rem);
+  transition: background-color 0.3s;
+}
+
+/* 设置面板按钮组样式 */
+.settings-buttons {
+  display: flex;
+  justify-content: flex-end;
+  padding: 15px 0 0;
+  gap: 10px;
+}
+
+/* 深色主题下的设置面板按钮组 */
+body.dark-theme .settings-buttons {
+  display: flex;
+  justify-content: space-between;
+  padding: 15px 0 0;
+  gap: 10px;
+}
+
+/* 按钮组样式 */
+.button-group {
+  display: flex;
+  gap: 10px;
+}
+
+.new-chat-btn {
+  padding: 12px 15px;
+  background-color: #f0f0f0;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: clamp(0.9rem, 2vw, 1rem);
+  transition: background-color 0.3s;
+  align-self: flex-end;
+  min-width: 80px;
+  width: fit-content;
+  white-space: nowrap;
+}
+
+.new-chat-btn:hover {
+  background-color: #e0e0e0;
+}
+
+/* 深色主题下的新对话按钮 */
+body.dark-theme .new-chat-btn {
+  background-color: #444;
+  color: #e0e0e0;
+  border: 1px solid #666;
+}
+
+body.dark-theme .new-chat-btn:hover {
+  background-color: #555;
+}
+
+/* 对话列表按钮 */
+.chat-list-btn {
+  padding: 12px 15px;
+  background-color: #f0f0f0;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: clamp(0.9rem, 2vw, 1rem);
+  transition: background-color 0.3s;
+  align-self: flex-end;
+  min-width: 80px;
+  width: fit-content;
+  white-space: nowrap;
+}
+
+.chat-list-btn:hover {
+  background-color: #e0e0e0;
+}
+
+/* 深色主题下的对话列表按钮 */
+body.dark-theme .chat-list-btn {
+  background-color: #444;
+  color: #e0e0e0;
+  border: 1px solid #666;
+}
+
+body.dark-theme .chat-list-btn:hover {
+  background-color: #555;
+}
+
+/* 停止语音按钮 */
+.stop-voice-btn {
+  position: fixed;
+  top: 10px;
+  right: 50%;
+  transform: translateX(50%);
+  padding: 8px 15px;
+  background-color: #ff6b6b;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  z-index: 999999999999 !important; /* 使用更高优先级的z-index确保始终在最上层 */
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  display: none; /* 默认隐藏 */
+  /* 添加一些额外的安全样式 */
+  pointer-events: auto;
+  min-width: 80px;
+  text-align: center;
+  /* 确保按钮不会被其他元素遮挡 */
+  position: fixed !important;
+  top: 10px !important;
+  /* 防止被其他元素的overflow隐藏 */
+  overflow: visible !important;
+}
+
+.stop-voice-btn:hover {
+  background-color: #ff5252;
+}
+
+/* 深色主题下的停止语音按钮 */
+body.dark-theme .stop-voice-btn {
+  background-color: #d32f2f;
+  color: white;
+}
+
+body.dark-theme .stop-voice-btn:hover {
+  background-color: #b71c1c;
+}
+
+/* 深色主题下的设置面板 */
+body.dark-theme .settings-content {
+  background-color: #333;
+  color: #e0e0e0;
+}
+
+body.dark-theme .setting-item label {
+  color: #e0e0e0;
+}
+
+body.dark-theme .setting-item select {
+  background-color: #444;
+  color: #e0e0e0;
+  border: 1px solid #666;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  transition: border-color 0.3s;
+}
+
+body.dark-theme .setting-item select:focus {
+  outline: none;
+  border-color: #4a90e2;
+}
+
+body.dark-theme .setting-item select::placeholder {
+  color: #aaa;
+}
+
+body.dark-theme .setting-item input {
+  background-color: #444;
+  color: #e0e0e0;
+  border: 1px solid #666;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+}
+
+body.dark-theme .setting-item input:focus {
+  outline: none;
+  border-color: #4a90e2;
+}
+
+body.dark-theme .setting-item input::placeholder {
+  color: #aaa;
+}
+
+/* 深色主题下的文本域样式 */
+body.dark-theme textarea {
+  background-color: #444;
+  color: #e0e0e0;
+  border: 1px solid #666;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  transition: border-color 0.3s;
+}
+
+body.dark-theme textarea:focus {
+  outline: none;
+  border-color: #4a90e2;
+}
+
+body.dark-theme textarea::placeholder {
+  color: #aaa;
+}
+
+/* 深色主题下的选择框样式 */
+body.dark-theme select {
+  background-color: #444;
+  color: #e0e0e0;
+  border: 1px solid #666;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  transition: border-color 0.3s;
+}
+
+body.dark-theme select:focus {
+  outline: none;
+  border-color: #4a90e2;
+}
+
+/* 深色主题下的通用表单元素样式 */
+body.dark-theme input[type="text"],
+body.dark-theme input[type="password"],
+body.dark-theme input[type="email"],
+body.dark-theme input[type="number"],
+body.dark-theme input[type="search"],
+body.dark-theme input[type="tel"],
+body.dark-theme input[type="url"] {
+  background-color: #444;
+  color: #e0e0e0;
+  border: 1px solid #666;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  transition: border-color 0.3s;
+}
+
+body.dark-theme input[type="text"]:focus,
+body.dark-theme input[type="password"]:focus,
+body.dark-theme input[type="email"]:focus,
+body.dark-theme input[type="number"]:focus,
+body.dark-theme input[type="search"]:focus,
+body.dark-theme input[type="tel"]:focus,
+body.dark-theme input[type="url"]:focus {
+  outline: none;
+  border-color: #4a90e2;
+}
+
+body.dark-theme input[type="text"]::placeholder,
+body.dark-theme input[type="password"]::placeholder,
+body.dark-theme input[type="email"]::placeholder,
+body.dark-theme input[type="number"]::placeholder,
+body.dark-theme input[type="search"]::placeholder,
+body.dark-theme input[type="tel"]::placeholder,
+body.dark-theme input[type="url"]::placeholder {
+  color: #aaa;
+}
+
+body.dark-theme .save-btn {
+  background-color: #4a90e2;
+  color: white;
+}
+
+body.dark-theme .close-btn:not(.window-control-btn) {
+  background-color: #666;
+  color: white;
+}
+
+body.dark-theme .clear-data-btn {
+  background-color: #d32f2f; /* 深色红色 */
+  color: white;
+}
+
+/* 语音输入按钮 */
+#voiceInputButton {
+  padding: 8px;
+  margin-right: 5px;
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+#voiceInputButton:hover {
+  background-color: #e0e0e0;
+}
+
+#voiceInputButton.recording {
+  background-color: #ff6b6b;
+  color: white;
+  animation: pulse 1s infinite;
+}
+
+/* 深色主题下的语音输入按钮 */
+body.dark-theme #voiceInputButton:hover {
+  background-color: #555;
+}
+
+body.dark-theme #voiceInputButton.recording {
+  background-color: #d32f2f;
+}
+
+/* 行内语音输入按钮 */
+.inline-voice-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+  z-index: 10;
+}
+
+.inline-voice-btn:hover {
+  background-color: #e0e0e0;
+}
+
+.inline-voice-btn.recording {
+  background-color: #ff6b6b;
+  color: white;
+  animation: pulse 1s infinite;
+}
+
+/* 深色主题下的行内语音输入按钮 */
+body.dark-theme .inline-voice-btn:hover {
+  background-color: #555;
+}
+
+body.dark-theme .inline-voice-btn.recording {
+  background-color: #d32f2f;
+}
+
+/* 技能按钮容器 */
+.skill-buttons {
+  display: flex;
+  gap: 10px;
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  z-index: 5;
+}
+
+/* 技能按钮 */
+.skill-btn {
+  padding: 8px 15px;
+  background-color: #f0f0f0;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.skill-btn:hover {
+  background-color: #e0e0e0;
+}
+
+/* 深色主题下的技能按钮 */
+body.dark-theme .skill-btn {
+  background-color: #444;
+  color: #e0e0e0;
+  border: 1px solid #666;
+}
+
+body.dark-theme .skill-btn:hover {
+  background-color: #555;
+}
+
+/* 激活的技能按钮 */
+.skill-btn.active-skill {
+  background-color: #007bff;
+  color: white;
+  border-color: #0056b3;
+}
+
+/* 深色主题下的激活技能按钮 */
+body.dark-theme .skill-btn.active-skill {
+  background-color: #0056b3;
+  color: white;
+  border-color: #004085;
+}
+
+/* 主技能按钮 - 与语音输入按钮样式相同 */
+.skill-btn-main {
+  padding: 6px 10px;
+  background-color: #f0f0f0;
+  color: #333;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.3s;
+  min-width: 50px;
+  height: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.skill-btn-main:hover {
+  background-color: #e0e0e0;
+}
+
+.skill-btn-main.recording {
+  background-color: #ff6b6b;
+  color: white;
+  animation: pulse 1s infinite;
+}
+
+/* 深色主题下的主技能按钮 */
+body.dark-theme .skill-btn-main {
+  background-color: #555;
+  color: white;
+}
+
+body.dark-theme .skill-btn-main:hover {
+  background-color: #666;
+}
+
+body.dark-theme .skill-btn-main.recording {
+  background-color: #d32f2f;
+}
+
+/* 技能弹出菜单 */
+.skill-menu {
+  position: absolute;
+  bottom: 60px;
+  left: 10px;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 100;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: auto;
+  min-width: 150px;
+}
+
+/* 深色主题下的技能弹出菜单 */
+body.dark-theme .skill-menu {
+  background-color: #2a2a2a;
+  border-color: #555;
+}
+
+/* 技能菜单按钮 */
+.skill-menu-btn {
+  padding: 8px 15px;
+  background-color: #f0f0f0;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  text-align: left;
+}
+
+.skill-menu-btn:hover {
+  background-color: #e0e0e0;
+}
+
+/* 深色主题下的技能菜单按钮 */
+body.dark-theme .skill-menu-btn {
+  background-color: #444;
+  color: #e0e0e0;
+  border: 1px solid #666;
+}
+
+body.dark-theme .skill-menu-btn:hover {
+  background-color: #555;
+}
+
+/* 激活的技能菜单按钮 */
+.skill-menu-btn.active-skill {
+  background-color: #007bff;
+  color: white;
+  border-color: #0056b3;
+}
+
+/* 深色主题下的激活技能菜单按钮 */
+body.dark-theme .skill-menu-btn.active-skill {
+  background-color: #0056b3;
+  color: white;
+  border-color: #004085;
+}
+
+/* 输入框和按钮容器 */
+.input-with-buttons {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  flex: 1;
+}
+
+/* 输入框左下角的按钮容器 */
+.input-bottom-left {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  z-index: 10;
+}
+
+#userInput {
+  flex: 1;
+  padding-right: 150px; /* 为内部按钮留出空间 */
+}
+
+/* 录音动画效果 */
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+/* 语音输入错误提示 */
+.voice-input-alert {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: #ff6b6b;
+  color: white;
+  padding: 15px 20px;
+  border-radius: 8px;
+  z-index: 10000;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  max-width: 400px;
+  word-wrap: break-word;
+}
+
+/* 深色主题下的语音输入错误提示 */
+body.dark-theme .voice-input-alert {
+  background-color: #d32f2f;
+}
+
+/* 对话列表侧边栏 */
+.chat-list-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 250px;
+  height: 100vh;
+  background-color: #f5f5f5;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+  z-index: 1001;
+  display: none;
+  flex-direction: column;
+  border-radius: 0 10px 10px 0; /* 添加右侧圆角 */
+}
+
+.chat-list-sidebar.active {
+  display: flex;
+}
+
+.chat-list-header {
+  padding: 20px;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 10px 10px 0 0; /* 顶部圆角 */
+}
+
+.close-chat-list-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%; /* 圆形按钮 */
+}
+
+.close-chat-list-btn:hover {
+  background-color: #e0e0e0;
+}
+
+.chat-list {
+  padding: 10px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.chat-item {
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 8px; /* 添加圆角 */
+  margin-bottom: 5px;
+  position: relative; /* 为操作按钮定位 */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chat-item:hover {
+  background-color: #e0e0e0;
+}
+
+.chat-item-content {
+  flex: 1;
+  overflow: hidden;
+}
+
+.chat-item-actions {
+  display: none;
+  gap: 5px;
+}
+
+.chat-item:hover .chat-item-actions {
+  display: flex;
+}
+
+.chat-item-action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-item-action-btn:hover {
+  background-color: #ccc;
+}
+
+/* 深色主题下的操作按钮 */
+body.dark-theme .chat-item-action-btn:hover {
+  background-color: #555;
+}
+
+.chat-item.active {
+  background-color: #d0d0d0;
+}
+
+.chat-item-title {
+  font-weight: bold;
+  margin-bottom: 5px;
+  font-size: 0.9rem;
+}
+
+.chat-item-preview {
+  font-size: 0.8rem;
+  color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 深色主题下的对话列表样式 */
+body.dark-theme .chat-list-sidebar {
+  background-color: #2a2a2a;
+  color: #e0e0e0;
+}
+
+body.dark-theme .chat-list-header {
+  border-bottom: 1px solid #555;
+}
+
+body.dark-theme .chat-item {
+  border-bottom: 1px solid #444;
+}
+
+body.dark-theme .chat-item:hover {
+  background-color: #3a3a3a;
+}
+
+body.dark-theme .chat-item.active {
+  background-color: #4a4a4a;
+}
+
+body.dark-theme .chat-item-preview {
+  color: #aaa;
+}
+
+body.dark-theme .close-chat-list-btn:hover {
+  background-color: #444;
+}
+
+
+
+/* 深色主题 */
+body.dark-theme {
+  background-color: #1a1a1a;
+  color: #e0e0e0;
+}
+
+/* 新年主题 */
+body.newyear-theme {
+  background-image: url('C:\\Users\\xmt20\\Desktop\\Ruanm-Work\\小R - AI助手\\new-year-Wallpaper.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  color: #333;
+}
+
+/* 新年主题下的深色元素 */
+.newyear-theme header {
+  background-color: rgba(255, 255, 255, 0.8);
+  color: #333;
+  backdrop-filter: blur(10px);
+}
+
+.newyear-theme .chat-history {
+  background-color: rgba(255, 255, 255, 0.7);
+  color: #333;
+  backdrop-filter: blur(5px);
+}
+
+.newyear-theme .message.user {
+  background-color: #ff6b6b;
+  color: white;
+}
+
+.newyear-theme .message.ai {
+  background-color: rgba(255, 255, 255, 0.8);
+  color: #333;
+}
+
+.newyear-theme #userInput {
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #333;
+  border-color: #ff6b6b;
+}
+
+.newyear-theme .message.ai code {
+  background-color: rgba(245, 245, 245, 0.9);
+  color: #333;
+}
+
+.newyear-theme .message.ai pre {
+  background-color: rgba(245, 245, 245, 0.9);
+  color: #333;
+}
+
+.dark-theme header {
+  background-color: #2a2a2a;
+  color: #e0e0e0;
+}
+
+.dark-theme .chat-history {
+  background-color: #2a2a2a;
+  color: #e0e0e0;
+}
+
+.dark-theme .message.user {
+  background-color: #5a9bde;
+  color: white;
+}
+
+.dark-theme .message.ai {
+  background-color: #3a3a3a;
+  color: #e0e0e0;
+}
+
+.dark-theme #userInput {
+  background-color: #3a3a3a;
+  color: #e0e0e0;
+  border-color: #555;
+}
+
+.dark-theme .message.ai code {
+  background-color: #4a4a4a;
+  color: #e0e0e0;
+}
+
+.dark-theme .message.ai pre {
+  background-color: #4a4a4a;
+  color: #e0e0e0;
+}
+
+/* 设置面板标签页样式 */
+.settings-tabs {
+  display: flex;
+  border-bottom: 1px solid #ddd;
+  margin-bottom: 15px;
+}
+
+.tab-button {
+  padding: 8px 16px;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-bottom: none;
+  cursor: pointer;
+  border-radius: 4px 4px 0 0;
+  margin-right: 4px;
+  background-color: #e0e0e0;
+}
+
+.tab-button:hover {
+  background-color: #d0d0d0;
+}
+
+.tab-button.active {
+  background-color: white;
+  border-bottom: 1px solid white;
+  margin-bottom: -1px;
+  font-weight: bold;
+}
+
+.settings-tab-content {
+  display: none;
+}
+
+.settings-tab-content.active {
+  display: block;
+}
+
+/* 深色主题下的设置面板标签页样式 */
+body.dark-theme .tab-button {
+  background-color: #444;
+  color: #e0e0e0;
+  border: 1px solid #666;
+}
+
+body.dark-theme .tab-button:hover {
+  background-color: #555;
+}
+
+body.dark-theme .tab-button.active {
+  background-color: #333;
+  color: #fff;
+  border-color: #666;
+  border-bottom: 1px solid #333;
+}
+
+/* 快捷键设置样式 */
+#shortcutInput {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  margin-bottom: 10px;
+  transition: border-color 0.3s;
+}
+
+#shortcutInput:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 5px rgba(74, 144, 226, 0.3);
+}
+
+.set-shortcut-btn {
+  width: 100%;
+  padding: 10px;
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s;
+}
+
+.set-shortcut-btn:hover {
+  background-color: #357ae8;
+}
+
+/* 深色主题下的快捷键设置样式 */
+body.dark-theme #shortcutInput {
+  background-color: #444;
+  color: #e0e0e0;
+  border: 1px solid #666;
+}
+
+body.dark-theme #shortcutInput:focus {
+  border-color: #4a90e2;
+  box-shadow: 0 0 5px rgba(74, 144, 226, 0.3);
+}
+
+body.dark-theme .set-shortcut-btn {
+  background-color: #4a90e2;
+  color: white;
+}
+
+body.dark-theme .set-shortcut-btn:hover {
+  background-color: #357ae8;
+}
+
+/* 快捷键按钮容器 */
+.shortcut-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* 设置快捷键按钮 - 保持原有样式 */
+#setShortcutButton {
+  padding: 10px;
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s;
+  width: 100%;
+}
+
+#setShortcutButton:hover {
+  background-color: #357ae8;
+}
+
+/* 检测快捷键按钮 */
+.detect-shortcut-btn {
+  padding: 10px;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s;
+  width: 100%;
+}
+
+.detect-shortcut-btn:hover {
+  background-color: #5a6268;
+}
+
+.detect-shortcut-btn.detecting {
+  background-color: #28a745;
+  animation: pulse 1s infinite;
+}
+
+/* 深色主题下的检测快捷键按钮 */
+body.dark-theme .detect-shortcut-btn {
+  background-color: #5a6268;
+  color: white;
+}
+
+body.dark-theme .detect-shortcut-btn:hover {
+  background-color: #495057;
+}
+
+body.dark-theme .detect-shortcut-btn.detecting {
+  background-color: #218838;
+}
+
+/* 超小屏幕优化 */
+@media (max-width: 320px) {
+  #sendButton {
+    padding: 6px 10px;
+    min-width: 50px;
+    font-size: 0.8rem;
+  }
+}
+
+/* 快捷键输入框容器 */
+.shortcut-input-container {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin: 10px 0;
+}
+
+/* 快捷键前缀固定文本 */
+.shortcut-prefix {
+  background-color: #f0f0f0;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-right: none;
+  border-radius: 4px 0 0 4px;
+  font-size: 14px;
+  white-space: nowrap;
+  height: 36px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+}
+
+body.dark-theme .shortcut-prefix {
+  background-color: #333;
+  border-color: #555;
+  border-right: none;
+  height: 36px;
+  color: #fff;
+}
+
+/* 快捷键按键输入框 */
+#shortcutKeyInput {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-left: none;
+  border-radius: 0 4px 4px 0;
+  font-size: 14px;
+  min-width: 60px;
+  height: 36px;
+  box-sizing: border-box;
+}
+
+body.dark-theme #shortcutKeyInput {
+  background-color: #2a2a2a;
+  color: #fff;
+  border-color: #555;
+  border-left: none;
+  height: 36px;
+  box-sizing: border-box;
+}
+
+/* 消息编辑功能样式 */
+.message {
+  position: relative;
+}
+
+.message-content {
+  display: inline-block;
+  margin-right: 5px;
+}
+
+/* 可编辑消息样式 */
+.message.editable-message {
+  cursor: pointer;
+}
+
+.message.editable-message:hover {
+  box-shadow: 0 0 0 2px #4a90e2;
+}
+
+.edit-btn {
+  background-color: transparent;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: #666;
+  margin-left: 5px;
+  transition: all 0.3s;
+}
+
+.edit-btn:hover {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.edit-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 1rem;
+  resize: vertical;
+  margin-bottom: 5px;
+}
+
+.edit-buttons {
+  display: flex;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.save-btn, .cancel-btn {
+  padding: 5px 10px;
+  border: 1px solid;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.save-btn {
+  background-color: #4a90e2;
+  color: white;
+  border-color: #4a90e2;
+}
+
+.save-btn:hover {
+  background-color: #357ae8;
+}
+
+.cancel-btn {
+  background-color: #f0f0f0;
+  color: #333;
+  border-color: #ccc;
+}
+
+.cancel-btn:hover {
+  background-color: #e0e0e0;
+}
+
+/* 深色主题下的编辑按钮样式 */
+body.dark-theme .edit-btn {
+  background-color: transparent;
+  border-color: #666;
+  color: #aaa;
+}
+
+body.dark-theme .edit-btn:hover {
+  background-color: #555;
+  color: #fff;
+}
+
+body.dark-theme .edit-input {
+  background-color: #444;
+  color: #e0e0e0;
+  border-color: #666;
+}
+
+body.dark-theme .save-btn {
+  background-color: #4a90e2;
+  color: white;
+  border-color: #4a90e2;
+}
+
+body.dark-theme .save-btn:hover {
+  background-color: #357ae8;
+}
+
+body.dark-theme .cancel-btn {
+  background-color: #555;
+  color: #e0e0e0;
+  border-color: #666;
+}
+
+body.dark-theme .cancel-btn:hover {
+  background-color: #666;
+}
+
+/* 深色主题下的可编辑消息样式 */
+body.dark-theme .message.editable-message:hover {
+  box-shadow: 0 0 0 2px #357ae8;
+}
+
+/* Ollama设置样式 */
+#ollamaSettings {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 15px;
+  margin-top: 10px;
+  background-color: #f9f9f9;
+}
+
+#ollamaSettings h4 {
+  margin: 0 0 15px 0;
+  color: #4a90e2;
+  font-size: 1.1em;
+}
+
+.ollama-setting-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.ollama-setting-row label {
+  min-width: 120px;
+  margin-right: 10px;
+}
+
+.ollama-setting-row input[type="text"] {
+  flex: 1;
+  min-width: 200px;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-right: 10px;
+}
+
+.ollama-setting-row select {
+  flex: 1;
+  min-width: 200px;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-right: 10px;
+}
+
+.test-btn, .refresh-btn {
+  padding: 6px 12px;
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+
+.test-btn:hover, .refresh-btn:hover {
+  background-color: #357ae8;
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-indicator {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #ccc;
+}
+
+.status-indicator.connected {
+  background-color: #28a745;
+}
+
+.status-indicator.disconnected {
+  background-color: #dc3545;
+}
+
+.status-indicator.connecting {
+  background-color: #ffc107;
+}
+
+/* 深色主题下的Ollama设置样式 */
+body.dark-theme #ollamaSettings {
+  border: 1px solid #555;
+  background-color: #333;
+}
+
+body.dark-theme #ollamaSettings h4 {
+  color: #5a9bde;
+}
+
+body.dark-theme .ollama-setting-row input[type="text"] {
+  background-color: #444;
+  color: #e0e0e0;
+  border: 1px solid #666;
+}
+
+body.dark-theme .ollama-setting-row select {
+  background-color: #444;
+  color: #e0e0e0;
+  border: 1px solid #666;
+}
+
+body.dark-theme .test-btn, body.dark-theme .refresh-btn {
+  background-color: #4a90e2;
+  color: white;
+}
+
+body.dark-theme .test-btn:hover, body.dark-theme .refresh-btn:hover {
+  background-color: #357ae8;
+}
+
+body.dark-theme .status-indicator {
+  background-color: #666;
+}
+
+body.dark-theme .status-indicator.connected {
+  background-color: #28a745;
+}
+
+body.dark-theme .status-indicator.disconnected {
+  background-color: #dc3545;
+}
+
+body.dark-theme .status-indicator.connecting {
+  background-color: #ffc107;
+}
+
+/* 扩展功能样式 */
+.extend-section {
+  margin: 15px 0;
+}
+
+.extend-section > p {
+  margin-bottom: 0px;
+}
+
+.extend-btn, .update-btn {
+  padding: 10px 20px;
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s;
+  min-width: 120px;
+}
+
+.update-btn {
+  background-color: #6c757d;
+}
+
+.extend-btn:hover, .update-btn:hover {
+  opacity: 0.9;
+}
+
+.extend-progress {
+  margin-top: 15px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 20px;
+  background-color: #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: #4a90e2;
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  text-align: center;
+  font-size: 0.9rem;
+  color: #333;
+  margin-top: 5px;
+}
+
+/* 深色主题下的扩展功能样式 */
+body.dark-theme .extend-btn, body.dark-theme .update-btn {
+  color: white;
+}
+
+body.dark-theme .extend-btn {
+  background-color: #4a90e2;
+}
+
+body.dark-theme .update-btn {
+  background-color: #6c757d;
+}
+
+body.dark-theme .progress-bar {
+  background-color: #555;
+}
+
+body.dark-theme .progress-fill {
+  background-color: #4a90e2;
+}
+
+body.dark-theme .progress-text {
+  color: #e0e0e0;
+}
