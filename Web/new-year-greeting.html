@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新年快乐 - 小R AI助手</title>
+    <style>
+        /* 雪花特效样式 */
+        .snowflake {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: white;
+            border-radius: 50%;
+            filter: blur(1px);
+            opacity: 0.8;
+            animation: fall linear infinite forwards;
+            z-index: 9000;
+        }
+        
+        @keyframes fall {
+            to {
+                transform: translateY(105vh) rotate(360deg);
+            }
+        }
+        
+        @keyframes sway {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(20px); }
+        }
+        
+
+        
+        /* 烟花特效样式 */
+        @keyframes firecracker-dance {
+            0% { 
+                transform: translateY(0) rotate(-5deg);
+                text-shadow: 0 0 10px #ff5722;
+            }
+            100% { 
+                transform: translateY(-10px) rotate(5deg);
+                text-shadow: 0 0 20px #ff5722, 0 0 30px #ff9800;
+            }
+        }
+        
+        /* 新年快乐全屏界面样式 */
+        .new-year-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #ff6b6b, #4ecdc4, #45b7d1, #ff9f1c);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        
+        .new-year-content {
+            text-align: center;
+            color: white;
+            z-index: 10;
+        }
+        
+        .new-year-image {
+            margin-bottom: 30px;
+        }
+        
+        .new-year-image img {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            border: 5px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.7);
+        }
+        
+        .new-year-title {
+            font-size: 48px;
+            font-weight: bold;
+            margin: 0 0 10px 0;
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            animation: glow 2s infinite alternate;
+        }
+        
+        .new-year-subtitle {
+            font-size: 24px;
+            margin: 0 0 30px 0;
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .continue-btn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .continue-btn:hover {
+            background: #ff5252;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .continue-btn:active {
+            transform: translateY(0);
+        }
+        
+        @keyframes glow {
+            from {
+                text-shadow: 0 0 10px rgba(255, 255, 255, 0.5), 0 0 20px rgba(255, 255, 255, 0.3);
+            }
+            to {
+                text-shadow: 0 0 20px rgba(255, 255, 255, 0.8), 0 0 30px rgba(255, 255, 255, 0.6);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 新年快乐全屏界面 -->
+    <div id="newYearScreen" class="new-year-screen">
+        <div class="new-year-content">
+            <div class="new-year-image">
+                <img src="RuanmAi.png" alt="新年快乐小R" id="newYearImage" draggable="false" style="-webkit-user-drag: none; -webkit-app-region: no-drag;">
+            </div>
+            <h1 class="new-year-title">小R祝贺您:</h1>
+            <h2 class="new-year-subtitle">2026年新年快乐！</h2>
+            <button id="continueButton" class="continue-btn">继续 →</button>
+        </div>
+    </div>
+    
+    <script>
+        // 新年界面逻辑
+        document.addEventListener('DOMContentLoaded', function() {
+            const newYearScreen = document.getElementById('newYearScreen');
+            const continueButton = document.getElementById('continueButton');
+            
+            continueButton.addEventListener('click', function() {
+                // 点击继续按钮后跳转到主界面
+                // 设置标志表示用户已经看过新年祝福
+                localStorage.setItem('newYearGreetingSeen', new Date().toDateString());
+                window.location.href = 'index.html';
+            });
+            
+            // 自动调整新年图片大小
+            const newYearImage = document.getElementById('newYearImage');
+            newYearImage.onload = function() {
+                // 图片加载完成后不需要额外处理
+            };
+            
+            // 创建烟花效果
+            let activeFireworks = 0; // 跟踪活跃的烟花数量
+            
+            function createFirework(x, y) {
+                // 检查是否已经有烟花在播放，如果有则不创建新的
+                if (activeFireworks > 0) {
+                    return; // 如果已经有烟花在播放，则直接返回，不创建新的
+                }
+                
+                activeFireworks++; // 增加活跃烟花计数
+                
+                const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ff9900', '#ff6600'];
+                
+                // 使用固定的124个粒子
+                const particleCount = 124; // 固定124个粒子
+                
+                for (let i = 0; i < particleCount; i++) { // 设定粒子数量为124
+                    const particle = document.createElement('div');
+                    particle.style.position = 'absolute';
+                    particle.style.width = '4px';
+                    particle.style.height = '4px';
+                    particle.style.borderRadius = '50%';
+                    particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    particle.style.left = x + 'px';
+                    particle.style.top = y + 'px';
+                    particle.style.pointerEvents = 'none';
+                    particle.style.zIndex = '10000';
+                    
+                    // 为每个粒子生成随机方向和速度
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 2 + Math.random() * 4;
+                    const vx = Math.cos(angle) * speed;
+                    const vy = Math.sin(angle) * speed;
+                    
+                    newYearScreen.appendChild(particle);
+                    
+                    // 为每个粒子创建独立的动画状态
+                    let opacity = 1;
+                    let posX = x;
+                    let posY = y;
+                    let particleVx = vx;
+                    let particleVy = vy;
+                    
+                    // 使用固定时间间隔动画以避免帧率限制
+                    const startTime = Date.now();
+                    const duration = 2000; // 2秒持续时间
+                    
+                    const animate = () => {
+                        const elapsed = Date.now() - startTime;
+                        const progress = Math.min(elapsed / duration, 1);
+                        
+                        // 创建拖尾效果（减少频率）
+                        if (Math.random() > 0.7 && elapsed < duration * 0.7) { // 只在前70%时间内创建拖尾
+                            const tail = document.createElement('div');
+                            tail.style.position = 'absolute';
+                            tail.style.width = '2px';
+                            tail.style.height = '2px';
+                            tail.style.borderRadius = '50%';
+                            tail.style.backgroundColor = particle.style.backgroundColor;
+                            tail.style.left = posX + 'px';
+                            tail.style.top = posY + 'px';
+                            tail.style.pointerEvents = 'none';
+                            tail.style.zIndex = '9999';
+                            tail.style.opacity = opacity * 0.5;
+                            newYearScreen.appendChild(tail);
+                            
+                            // 拖尾粒子淡出效果
+                            setTimeout(() => {
+                                tail.style.transition = 'opacity 0.5s ease-out';
+                                tail.style.opacity = '0';
+                                setTimeout(() => {
+                                    if (tail.parentNode) {
+                                        tail.parentNode.removeChild(tail);
+                                    }
+                                }, 500);
+                            }, 10);
+                        }
+                        
+                        // 更新粒子位置
+                        posX += particleVx * 0.5; // 减少移动速度以优化性能
+                        posY += particleVy * 0.5;
+                        
+                        // 模拟重力和衰减
+                        particleVy += 0.02;
+                        particleVx *= 0.99; // 轻微的空气阻力
+                        
+                        // 透明度变化
+                        opacity = 1 - (progress * 0.7); // 调整透明度变化
+                        
+                        particle.style.left = posX + 'px';
+                        particle.style.top = posY + 'px';
+                        particle.style.opacity = opacity;
+                        
+                        // 继续动画直到持续时间结束
+                        if (progress < 1) {
+                            requestAnimationFrame(animate);
+                        } else {
+                            particle.remove();
+                            // 检查是否所有粒子都已移除，如果是，则减少活跃烟花计数
+                            if (i === particleCount - 1) { // 当最后一个粒子移除时
+                                setTimeout(() => {
+                                    activeFireworks--; // 减少活跃烟花计数
+                                }, 100); // 延迟确保所有粒子都已处理
+                            }
+                        }
+                    };
+                    
+                    animate();
+                }
+            }
+            
+            // 点击烟花特效
+            newYearScreen.addEventListener('click', function(e) {
+                // 不在按钮上点击时才触发烟花效果
+                if (e.target !== continueButton) {
+                    createFirework(e.clientX, e.clientY);
+                }
+            });
+            
+            // 创建雪花效果
+            // 创建雪花容器
+            const snowContainer = document.createElement('div');
+            snowContainer.id = 'snow-container';
+            snowContainer.style.cssText = `
+              position: fixed;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              pointer-events: none;
+              z-index: 9000;
+              overflow: hidden;
+              user-select: none;
+            `;
+            newYearScreen.appendChild(snowContainer);
+            
+            function createSnow() {
+              const snow = document.createElement('div');
+              // 使用雪花符号
+              snow.innerHTML = '❄';
+              snow.style.cssText = `
+                position: absolute;
+                color: white;
+                font-size: ${Math.random() * 10 + 10}px;
+                left: ${Math.random() * 100}vw;
+                top: -20px;
+                opacity: ${Math.random() * 0.5 + 0.5};
+                animation: fall ${Math.random() * 5 + 5}s linear infinite;
+                pointer-events: none;
+                user-select: none;
+                z-index: 9000;
+              `;
+              
+              snowContainer.appendChild(snow);
+              
+              // 雪花移除
+              setTimeout(() => {
+                if (snow.parentNode) {
+                  snow.parentNode.removeChild(snow);
+                }
+              }, 10000);
+            }
+            
+            // 定期创建雪花
+            setInterval(createSnow, 300);
+            
+            // 添加雪花动画样式
+            const style = document.createElement('style');
+            style.textContent = `
+              @keyframes fall {
+                to {
+                  transform: translateY(105vh) rotate(${Math.random() * 360}deg);
+                }
+              }
+            `;
+            document.head.appendChild(style);
+            
+            // 初始生成一些雪花
+            for (let i = 0; i < 30; i++) {
+                setTimeout(() => {
+                    createSnow();
+                }, i * 100); // 错开生成时间
+            }
+        });
+    </script>
+</body>
+</html>
