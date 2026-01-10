@@ -4,6 +4,12 @@ const fs = require('fs');
 const os = require('os');
 const { spawn } = require('child_process');
 
+// 解析命令行参数
+const args = process.argv.slice(2);
+
+// 检查是否传入了 --no-single-instance-lock 参数
+const noSingleInstanceLock = args.includes('--no-single-instance-lock');
+
 // 处理 Squirrel.Windows 事件（如果存在）
 if (require('electron-squirrel-startup')) {
   app.quit();
@@ -12,8 +18,14 @@ if (require('electron-squirrel-startup')) {
 
 // 检查是否已经有一个实例在运行
 console.log('正在检查是否有其他实例在运行...');
-const gotTheLock = app.requestSingleInstanceLock();
-console.log('单实例锁检查结果：', gotTheLock);
+let gotTheLock = true; // 默认允许启动
+
+// 仅在没有 --no-single-instance-lock 参数时才请求单实例锁
+if (!noSingleInstanceLock) {
+  gotTheLock = app.requestSingleInstanceLock();
+  console.log('单实例锁检查结果：', gotTheLock);
+  console.log('单实例锁已被禁用参数覆盖：', noSingleInstanceLock);
+}
 
 if (!gotTheLock) {
   app.whenReady().then(() => {
@@ -107,6 +119,8 @@ function loadAllConversations() {
 app.whenReady().then(() => {
   console.log('应用已就绪，开始创建窗口');
   createWindow();
+  
+  
   
   // 注册全局快捷键 Ctrl+Alt+R 来显示主窗口
   const { globalShortcut } = require('electron');
@@ -343,17 +357,38 @@ function createWindow() {
     mainWindow.webContents.openDevTools();
   }
   
-  // 当窗口关闭时，最小化到托盘而不是退出
-  mainWindow.on('close', (event) => {
+  // 页面加载完成后，同步closeToExit设置到渲染进程
+  mainWindow.webContents.on('dom-ready', async () => {
+    try {
+      // 将当前的closeToExit设置同步到渲染进程
+      await mainWindow.webContents.executeJavaScript(
+        `if(window.updateCloseToExitSetting) window.updateCloseToExitSetting(${closeToExit}); `
+      );
+      console.log('已将关闭设置同步到渲染进程:', closeToExit);
+    } catch (error) {
+      console.error('同步关闭设置到渲染进程失败:', error);
+    }
+  });
+  
+  // 当窗口关闭时，根据设置决定是退出还是最小化到托盘
+  mainWindow.on('close', async (event) => {
     if (app.quitting) {
       // 如果是正在退出应用，则正常关闭
       return;
     }
-    event.preventDefault(); // 阻止默认关闭行为
-    mainWindow.hide(); // 隐藏窗口
     
-    // 创建托盘图标（如果不存在）
-    createTray();
+    // 直接使用全局变量closeToExit来决定行为
+    if (closeToExit) {
+      // 如果设置了关闭时直接退出，则退出应用
+      app.quit();
+    } else {
+      // 否则最小化到托盘
+      event.preventDefault(); // 阻止默认关闭行为
+      mainWindow.hide(); // 隐藏窗口
+      
+      // 创建托盘图标（如果不存在）
+      createTray();
+    }
   });
 }
 
@@ -454,6 +489,21 @@ ipcMain.handle('send-ai-request', async (event, requestData) => {
   try {
     // 获取API端点，默认为Deepseek
     let apiEndpoint = requestData.apiEndpoint || 'https://api.jkyai.top/API/depsek3.2.php';
+    
+    // 特殊处理GLM API，因为它有独特的参数格式
+    if (apiEndpoint.includes('api.52vmy.cn/api/chat/glm')) {
+      // GLM API的格式已经在renderer.js中构建好了，直接使用
+      const response = await fetch(apiEndpoint, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (compatible; XiaoRAI/1.0)'
+        }
+      });
+      
+      const resultText = await response.text();
+      return resultText;
+    }
     
     // 根据API端点构建不同的参数格式
     let requestUrl;
@@ -712,6 +762,55 @@ ipcMain.handle('start-voice-recognition', async (event) => {
   });
 });
 
+// 全局变量存储关闭设置
+let closeToExit = false;
+
+// 配置文件路径
+const configPath = path.join(app.getPath('userData'), 'app-config.json');
+
+// 从配置文件加载设置
+function loadConfig() {
+  try {
+    if (fs.existsSync(configPath)) {
+      const configData = fs.readFileSync(configPath, 'utf8');
+      const config = JSON.parse(configData);
+      closeToExit = config.closeToExit || false;
+      console.log('从配置文件加载关闭设置:', closeToExit);
+    } else {
+      // 如果配置文件不存在，尝试从旧的设置中加载
+      console.log('配置文件不存在，使用默认值');
+    }
+  } catch (error) {
+    console.error('加载配置失败:', error);
+    closeToExit = false;
+  }
+}
+
+// 保存设置到配置文件
+function saveConfig() {
+  try {
+    const config = { closeToExit };
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+    console.log('配置已保存到文件:', config);
+  } catch (error) {
+    console.error('保存配置失败:', error);
+  }
+}
+
+// 应用启动时加载配置
+loadConfig();
+
+
+
+// 监听渲染进程发送的关闭设置更新
+ipcMain.on('update-close-to-exit-setting', (event, enabled) => {
+  closeToExit = enabled;
+  console.log('关闭时直接退出设置已更新:', enabled);
+  
+  // 同时保存到配置文件
+  saveConfig();
+});
+
 // 处理窗口最小化的 IPC 通道
 ipcMain.handle('minimize-window', async (event) => {
   try {
@@ -797,6 +896,32 @@ ipcMain.handle('update-shortcut', async (event, newShortcut) => {
   } catch (error) {
     console.error('更新快捷键失败:', error);
     return { success: false, error: error.message };
+  }
+});
+
+
+
+// 处理命令行参数中的协议URL
+app.on('second-instance', (event, commandLine, workingDirectory) => {
+  console.log('检测到第二个实例启动，正在将焦点切换到主窗口');
+  
+  
+  
+  // 当运行第二个实例时，如果主窗口存在则将其聚焦
+  if (mainWindow) {
+    console.log('主窗口存在，正在恢复和聚焦');
+    if (mainWindow.isMinimized()) {
+      console.log('主窗口已最小化，正在恢复');
+      mainWindow.restore();
+    }
+    mainWindow.show();
+    mainWindow.focus();
+    console.log('主窗口已聚焦');
+    
+    // 向渲染进程发送消息，通知窗口需要聚焦
+    mainWindow.webContents.send('bring-to-front');
+  } else {
+    console.log('主窗口不存在');
   }
 });
 

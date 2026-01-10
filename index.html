@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>小R - AI助手</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
     <script>
         // 检查用户是否已经看过新年祝福
@@ -47,6 +48,7 @@
                 <div class="settings-tabs">
                     <button class="tab-button active" data-tab="ai-settings">AI设置</button>
                     <button class="tab-button" data-tab="app-settings">应用设置</button>
+                    <button class="tab-button" data-tab="update-extend">更新与扩展</button>
                 </div>
                 
                 <!-- AI设置栏目 -->
@@ -60,6 +62,7 @@
                             <option value="qwen3">Qwen3</option>
                             <option value="ling">蚂蚁Ling2.0</option>
                             <option value="gemini">Gemini-2.5</option>
+                            <option value="glm">GLM</option>
                             <option value="custom">自定义模型</option>
                             <option value="ollama">Ollama本地模型</option>
                         </select>
@@ -163,6 +166,8 @@
                         <select id="themeSelect">
                             <option value="light">浅色</option>
                             <option value="dark">深色</option>
+                            <option value="system">跟随系统</option>
+                            <option value="newyear">新年主题</option>
                         </select>
                     </div>
                     
@@ -185,6 +190,12 @@
                     </div>
                     
                     <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="closeToExitToggle"> 关闭时直接退出
+                        </label>
+                    </div>
+                    
+                    <div class="setting-item">
                         <label>快捷键:</label>
                         <div class="shortcut-input-container">
                             <span id="shortcutPrefix" class="shortcut-prefix">Ctrl+Alt+</span>
@@ -192,6 +203,33 @@
                         </div>
                         <button id="setShortcutButton" class="set-shortcut-btn">设置快捷键</button>
                         <small>提示: 在输入框中输入单个按键</small>
+                    </div>
+                    
+
+                </div>
+                
+                <!-- 更新与扩展栏目 -->
+                <div id="update-extend" class="settings-tab-content">
+                    <div class="setting-item">
+                        <h3>扩展</h3>
+                        <div class="extend-section">
+                            <p>扩展Ruanm自研模型RenMinix</p>
+                            <p>&nbsp;</p>
+                            <button id="extendModelButton" class="extend-btn">扩展模型</button>
+                            <div id="extendProgress" class="extend-progress" style="display: none;">
+                                <div class="progress-bar">
+                                    <div id="progressFill" class="progress-fill"></div>
+                                </div>
+                                <p>&nbsp;</p>
+                                <div id="progressText" class="progress-text">0%</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <h3>更新</h3>
+                        <p>当前版本: v1.1.2</p>
+                        <p>&nbsp;</p>
+                        <button id="checkUpdateButton" class="update-btn">检查更新</button>
                     </div>
                 </div>
                 

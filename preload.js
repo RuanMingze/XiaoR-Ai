@@ -18,5 +18,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setAutoLaunch: (enable) => ipcRenderer.invoke('set-auto-launch', enable),
   updateShortcut: (newShortcut) => ipcRenderer.invoke('update-shortcut', newShortcut),
   launchMainWithParams: (params) => ipcRenderer.invoke('launch-main-with-params', params),
-  onMiniInputMessage: (callback) => ipcRenderer.on('mini-input-message', (event, ...args) => callback(...args)),
+  onMiniInputMessage: (callback) => ipcRenderer.on('mini-input-message', (event, ...args) => callback),
+  updateCloseToExitSetting: (enabled) => ipcRenderer.send('update-close-to-exit-setting', enabled),
 });

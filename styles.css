@@ -256,6 +256,28 @@ main {
   margin-right: auto;
 }
 
+/* 深色主题下的消息样式 */
+body.dark-theme .message.ai {
+  background: #2a2a4a;
+  color: #f0f2f5;
+}
+
+body.dark-theme .message.user {
+  background: #5e72e4;
+  color: white;
+}
+
+/* 新年主题下的消息样式 */
+body.newyear-theme .message.ai {
+  background: rgba(255, 255, 255, 0.8);
+  color: #333;
+}
+
+body.newyear-theme .message.user {
+  background: #ff6b6b;
+  color: white;
+}
+
 /* Markdown 样式 */
 .message.ai h1 {
   font-size: 1.5rem;
@@ -1334,6 +1356,54 @@ body.dark-theme {
   color: #e0e0e0;
 }
 
+/* 新年主题 */
+body.newyear-theme {
+  background-image: url('C:\\Users\\xmt20\\Desktop\\Ruanm-Work\\小R - AI助手\\new-year-Wallpaper.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  color: #333;
+}
+
+/* 新年主题下的深色元素 */
+.newyear-theme header {
+  background-color: rgba(255, 255, 255, 0.8);
+  color: #333;
+  backdrop-filter: blur(10px);
+}
+
+.newyear-theme .chat-history {
+  background-color: rgba(255, 255, 255, 0.7);
+  color: #333;
+  backdrop-filter: blur(5px);
+}
+
+.newyear-theme .message.user {
+  background-color: #ff6b6b;
+  color: white;
+}
+
+.newyear-theme .message.ai {
+  background-color: rgba(255, 255, 255, 0.8);
+  color: #333;
+}
+
+.newyear-theme #userInput {
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #333;
+  border-color: #ff6b6b;
+}
+
+.newyear-theme .message.ai code {
+  background-color: rgba(245, 245, 245, 0.9);
+  color: #333;
+}
+
+.newyear-theme .message.ai pre {
+  background-color: rgba(245, 245, 245, 0.9);
+  color: #333;
+}
+
 .dark-theme header {
   background-color: #2a2a2a;
   color: #e0e0e0;
@@ -1855,4 +1925,85 @@ body.dark-theme .status-indicator.disconnected {
 
 body.dark-theme .status-indicator.connecting {
   background-color: #ffc107;
+}
+
+/* 扩展功能样式 */
+.extend-section {
+  margin: 15px 0;
+}
+
+.extend-section > p {
+  margin-bottom: 0px;
+}
+
+.extend-btn, .update-btn {
+  padding: 10px 20px;
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s;
+  min-width: 120px;
+}
+
+.update-btn {
+  background-color: #6c757d;
+}
+
+.extend-btn:hover, .update-btn:hover {
+  opacity: 0.9;
+}
+
+.extend-progress {
+  margin-top: 15px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 20px;
+  background-color: #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: #4a90e2;
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  text-align: center;
+  font-size: 0.9rem;
+  color: #333;
+  margin-top: 5px;
+}
+
+/* 深色主题下的扩展功能样式 */
+body.dark-theme .extend-btn, body.dark-theme .update-btn {
+  color: white;
+}
+
+body.dark-theme .extend-btn {
+  background-color: #4a90e2;
+}
+
+body.dark-theme .update-btn {
+  background-color: #6c757d;
+}
+
+body.dark-theme .progress-bar {
+  background-color: #555;
+}
+
+body.dark-theme .progress-fill {
+  background-color: #4a90e2;
+}
+
+body.dark-theme .progress-text {
+  color: #e0e0e0;
 }

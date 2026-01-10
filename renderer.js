@@ -19,6 +19,7 @@ const customModelSettings = document.getElementById('customModelSettings');
 const customModelUrl = document.getElementById('customModelUrl');
 const autoLaunchToggle = document.getElementById('autoLaunchToggle');
 const floatingBallToggle = document.getElementById('floatingBallToggle');
+const closeToExitToggle = document.getElementById('closeToExitToggle');
 const shortcutKeyInput = document.getElementById('shortcutKeyInput');
 const shortcutPrefix = document.getElementById('shortcutPrefix');
 const setShortcutButton = document.getElementById('setShortcutButton');
@@ -329,6 +330,7 @@ function addMessageToHistory(message, isUser = false, messageId = null, animate 
   
   if (!isUser && animate) {
     console.log('处理AI消息前（动画模式）:', message);
+    
     // 如果启用了动画输出，逐字显示
     messageDiv.textContent = '';
     chatHistory.appendChild(messageDiv);
@@ -370,7 +372,6 @@ function addMessageToHistory(message, isUser = false, messageId = null, animate 
     } else {
       messageDiv.textContent = message;
     }
-    
     chatHistory.appendChild(messageDiv);
     
     // 滚动到底部
@@ -569,6 +570,9 @@ async function sendToAI(question, modelOverride = null) {
         apiEndpoint = 'https://api.jkyai.top/API/ling-1t.php'; // 蚂蚁Ling2.0
       } else if (aiModel === 'gemini') {
         apiEndpoint = 'https://api.jkyai.top/API/gemini2.5/index.php'; // Gemini-2.5
+      } else if (aiModel === 'glm') {
+        // GLM模型: 使用提供的API端点，将问题和系统提示词按特定格式拼接在msg参数中，并添加type=text参数
+        apiEndpoint = `https://api.52vmy.cn/api/chat/glm?msg=${encodeURIComponent(question + '。提示词是：' + systemMessage)}&type=text`;
       } else if (aiModel === 'ollama') {
         // Ollama模型：直接处理请求并返回结果
         const ollamaServerUrl = settings.ollamaServerUrl || 'http://localhost:11434';
@@ -2103,8 +2107,37 @@ function loadSettings() {
     if (settings.theme === 'dark') {
       document.body.classList.add('dark-theme');
       themeSelect.value = 'dark';
+    } else if (settings.theme === 'system') {
+      // 检测系统主题偏好
+      const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      console.log('系统主题偏好:', isDarkMode ? '深色' : '浅色');
+      if (isDarkMode) {
+        document.body.classList.add('dark-theme');
+      } else {
+        document.body.classList.remove('dark-theme');
+      }
+      
+      // 监听系统主题变化
+      if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+          const currentSettings = JSON.parse(localStorage.getItem('xiaor-settings') || '{}');
+          console.log('系统主题变化:', e.matches ? '深色' : '浅色');
+          if (currentSettings.theme === 'system') {
+            if (e.matches) {
+              document.body.classList.add('dark-theme');
+            } else {
+              document.body.classList.remove('dark-theme');
+            }
+          }
+        });
+      }
+      themeSelect.value = 'system';
+    } else if (settings.theme === 'newyear') {
+      document.body.classList.add('newyear-theme');
+      themeSelect.value = 'newyear';
     } else {
       document.body.classList.remove('dark-theme');
+      document.body.classList.remove('newyear-theme');
       themeSelect.value = 'light';
     }
     
@@ -2199,6 +2232,13 @@ function loadSettings() {
       floatingBallToggle.checked = true; // 默认显示悬浮球
     }
     
+    // 应用关闭时直接退出设置
+    if (settings.closeToExit !== undefined) {
+      closeToExitToggle.checked = settings.closeToExit;
+    } else {
+      closeToExitToggle.checked = false; // 默认不启用关闭时直接退出
+    }
+    
     // 应用天气API密钥设置
     if (settings.weatherApiKey !== undefined) {
       const weatherApiKeyInput = document.getElementById('weatherApiKeyInput');
@@ -2239,6 +2279,9 @@ function loadSettings() {
     // 默认显示悬浮球
     floatingBallToggle.checked = true;
     
+    // 默认不启用关闭时直接退出
+    closeToExitToggle.checked = false;
+    
     // 默认启用动画输出
     const animationOutputToggle = document.getElementById('animationOutputToggle');
     if (animationOutputToggle) {
@@ -2270,6 +2313,7 @@ function saveSettings() {
     voiceType: voiceTypeSelect ? voiceTypeSelect.value : '',
     autoLaunch: autoLaunchToggle.checked,
     showFloatingBall: floatingBallToggle.checked,
+    closeToExit: closeToExitToggle.checked,
     animationOutput: animationOutputToggle ? animationOutputToggle.checked : false,
     weatherApiKey: document.getElementById('weatherApiKeyInput') ? document.getElementById('weatherApiKeyInput').value : '',
     ollamaServerUrl: document.getElementById('ollamaServerUrl') ? document.getElementById('ollamaServerUrl').value : 'http://localhost:11434',
@@ -2294,13 +2338,30 @@ function saveSettings() {
   // 应用主题设置
   if (settings.theme === 'dark') {
     document.body.classList.add('dark-theme');
+  } else if (settings.theme === 'system') {
+    // 检测系统主题偏好
+    const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    console.log('系统主题偏好:', isDarkMode ? '深色' : '浅色');
+    if (isDarkMode) {
+      document.body.classList.add('dark-theme');
+    } else {
+      document.body.classList.remove('dark-theme');
+    }
+  } else if (settings.theme === 'newyear') {
+    document.body.classList.add('newyear-theme');
   } else {
     document.body.classList.remove('dark-theme');
+    document.body.classList.remove('newyear-theme');
   }
   
   // 更新主进程中的自启动设置
   if (window.electronAPI && window.electronAPI.setAutoLaunch) {
     window.electronAPI.setAutoLaunch(autoLaunchToggle.checked);
+  }
+  
+  // 通知主进程关闭时直接退出设置已更改
+  if (window.electronAPI && window.electronAPI.updateCloseToExitSetting) {
+    window.electronAPI.updateCloseToExitSetting(closeToExitToggle.checked);
   }
   
   console.log('设置已保存:', settings);
@@ -2586,7 +2647,8 @@ async function checkAIModelAvailability() {
     'yuanbao': 'https://api.jkyai.top/API/yuanbao.php',
     'qwen3': 'https://api.jkyai.top/API/qwen3.php',
     'ling': 'https://api.jkyai.top/API/ling-1t.php',
-    'gemini': 'https://api.jkyai.top/API/gemini2.5/index.php'
+    'gemini': 'https://api.jkyai.top/API/gemini2.5/index.php',
+    'glm': 'https://api.52vmy.cn/api/chat/glm?msg=测试连接。提示词是：系统测试&type=text'
   };
   
   const modelNames = {
@@ -2595,7 +2657,8 @@ async function checkAIModelAvailability() {
     'yuanbao': '腾讯元宝',
     'qwen3': 'Qwen3',
     'ling': '蚂蚁Ling2.0',
-    'gemini': 'Gemini-2.5'
+    'gemini': 'Gemini-2.5',
+    'glm': 'GLM'
   };
   
   // 获取当前选择的AI模型
@@ -2649,6 +2712,7 @@ function updateModelSelectDisplay(availability, currentModel) {
     { value: 'qwen3', text: 'Qwen3' },
     { value: 'ling', text: '蚂蚁Ling2.0' },
     { value: 'gemini', text: 'Gemini-2.5' },
+    { value: 'glm', text: 'GLM' },
     { value: 'custom', text: '自定义模型' },
     { value: 'ollama', text: 'Ollama本地模型' }
   ];
@@ -2697,6 +2761,7 @@ function updateModelSelectDisplay(availability, currentModel) {
             'qwen3': true,
             'ling': true,
             'gemini': true,
+            'glm': true,
             'ollama': true
           };
           
@@ -3301,6 +3366,78 @@ window.addEventListener('DOMContentLoaded', () => {
         sendToAI(params.question);
       }
     });
+  }
+});
+
+
+// 扩展模型功能
+function extendModel() {
+  const extendButton = document.getElementById('extendModelButton');
+  const extendProgress = document.getElementById('extendProgress');
+  const progressFill = document.getElementById('progressFill');
+  const progressText = document.getElementById('progressText');
+  
+  if (!extendButton || !extendProgress || !progressFill || !progressText) {
+    console.error('扩展模型元素未找到');
+    return;
+  }
+  
+  // 显示进度条
+  extendProgress.style.display = 'block';
+  
+  // 模拟10秒进度条
+  let progress = 0;
+  const interval = setInterval(() => {
+    progress += 10;
+    progressFill.style.width = progress + '%';
+    progressText.textContent = progress + '%';
+    
+    if (progress >= 100) {
+      clearInterval(interval);
+      
+      // 10秒后显示提示框
+      setTimeout(() => {
+        showCustomAlert('提示', 'Ruanm自研模型RenMinix扩展成功！服务器正在申请中，敬请期待。');
+        // 隐藏进度条
+        extendProgress.style.display = 'none';
+        progressFill.style.width = '0%';
+        progressText.textContent = '0%';
+      }, 1000); // 延迟1秒显示提示框
+    }
+  }, 1000); // 每秒增加10%
+}
+
+// 检查更新功能
+function checkForUpdate() {
+  showCustomAlert('检查更新', '当前已是最新版本: v1.1.2\n如有更新会在此处显示。');
+  console.log('用户关闭了更新提示');
+}
+
+// 定义showAlert函数
+function showAlert(title, message) {
+  showCustomAlert(title, message);
+}
+
+
+
+// 更新关闭时直接退出设置的UI
+function updateCloseToExitSetting(enabled) {
+  if (closeToExitToggle) {
+    closeToExitToggle.checked = enabled;
+  }
+}
+
+// 为扩展模型按钮添加点击事件
+document.addEventListener('DOMContentLoaded', () => {
+  const extendButton = document.getElementById('extendModelButton');
+  const updateButton = document.getElementById('checkUpdateButton');
+  
+  if (extendButton) {
+    extendButton.addEventListener('click', extendModel);
+  }
+  
+  if (updateButton) {
+    updateButton.addEventListener('click', checkForUpdate);
   }
 });
 

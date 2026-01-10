@@ -9,7 +9,7 @@
       overflow: visible;
     }
 
-    /* 迷你输入框样式 */
+    /* 默认浅色主题 */
     .mini-input {
       width: 300px;
       height: 60px;
@@ -35,6 +35,8 @@
       min-height: 36px;
       max-height: 80px;
       margin-right: 10px; /* 增加右边距，为按钮留出空间 */
+      background-color: #fff;
+      color: #333;
     }
 
     .mini-send-btn {
@@ -51,6 +53,36 @@
     .mini-send-btn:hover {
       background-color: #357ae8;
     }
+    
+    /* 深色主题 */
+    body[data-theme="dark"],
+    body.dark-theme {
+      background: transparent;
+    }
+    
+    body[data-theme="dark"] .mini-input,
+    body.dark-theme .mini-input {
+      background: #2d2d2d;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+    
+    body[data-theme="dark"] .mini-input-box,
+    body.dark-theme .mini-input-box {
+      background-color: #3c3c3c;
+      border: 1px solid #555;
+      color: #e0e0e0;
+    }
+    
+    body[data-theme="dark"] .mini-send-btn,
+    body.dark-theme .mini-send-btn {
+      background-color: #3a7bdd;
+      color: #ffffff;
+    }
+    
+    body[data-theme="dark"] .mini-send-btn:hover,
+    body.dark-theme .mini-send-btn:hover {
+      background-color: #2c6bc7;
+    }
   </style>
 </head>
 <body>
@@ -66,6 +98,30 @@
     document.addEventListener('DOMContentLoaded', function() {
       const miniInputBox = document.getElementById('miniInputBox');
       const sendMiniBtn = document.getElementById('sendMiniBtn');
+      
+      // 检测系统主题并应用相应样式
+      function applyTheme() {
+        // 检查系统是否偏好深色主题
+        const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        
+        // 检查是否有存储的主题偏好
+        const storedTheme = localStorage.getItem('theme');
+        
+        // 应用主题
+        if (storedTheme === 'dark' || (!storedTheme && isDarkMode)) {
+          document.body.setAttribute('data-theme', 'dark');
+        } else {
+          document.body.removeAttribute('data-theme');
+        }
+      }
+      
+      // 初始应用主题
+      applyTheme();
+      
+      // 监听系统主题变化
+      if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+      }
 
       // 发送消息功能
       function sendMessage() {
