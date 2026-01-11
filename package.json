@@ -1,6 +1,6 @@
 {
   "name": "xiaor-ai-assistant",
-  "version": "1.1.2",
+  "version": "1.1.8",
   "description": "小R助手",
   "main": "main.js",
   "scripts": {

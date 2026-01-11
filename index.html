@@ -7,12 +7,20 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
     <script>
+        // 检查是否是首次访问
+        const hasVisited = localStorage.getItem('hasVisited');
+        
+        // 如果是首次访问，则重定向到欢迎页面
+        if (!hasVisited) {
+            window.location.href = 'Welcome.html';
+        }
+        
         // 检查用户是否已经看过新年祝福
         const newYearGreetingSeen = localStorage.getItem('newYearGreetingSeen');
         const today = new Date().toDateString();
         
         // 如果用户今天还没有看过新年祝福，则重定向到新年祝福页面
-        if (newYearGreetingSeen !== today) {
+        if (newYearGreetingSeen !== today && hasVisited) {
             window.location.href = 'new-year-greeting.html';
         }
         // 否则直接加载当前页面（即原来的主界面）
@@ -22,11 +30,16 @@
 
     <div class="container">
         <header>
-            <h1>小R - AI助手</h1>
-            <div class="header-buttons">
+            <div class="header-top">
+                <h1>小R - AI助手</h1>
+                <div class="header-buttons">
+                    <button id="aboutButton" class="about-btn">ℹ️</button>
+                    <button id="settingsButton" class="settings-btn">⚙️</button>
+                </div>
+            </div>
+            <div class="header-secondary-buttons">
                 <button id="newChatButton" class="new-chat-btn">新对话</button>
                 <button id="chatListButton" class="chat-list-btn">对话列表</button>
-                <button id="settingsButton" class="settings-btn">⚙️</button>
             </div>
         </header>
         
@@ -35,6 +48,35 @@
             <div class="chat-list-header">
                 <h3>对话列表</h3>
                 <button id="closeChatList" class="close-chat-list-btn">x</button>
+            </div>
+            <div class="chat-search-container">
+                <input type="text" id="chatSearch" class="chat-search" placeholder="搜索对话...">
+            </div>
+            <div class="chat-tags-container">
+                <select id="chatTagFilter" class="chat-tag-filter">
+                    <option value="">所有标签</option>
+                    <option value="未分类">未分类</option>
+                    <option value="通用对话">通用对话</option>
+                    <option value="问题解答">问题解答</option>
+                    <option value="技术支持">技术支持</option>
+                    <option value="学术讨论">学术讨论</option>
+                    <option value="编程帮助">编程帮助</option>
+                    <option value="创意写作">创意写作</option>
+                    <option value="语言翻译">语言翻译</option>
+                    <option value="数学计算">数学计算</option>
+                    <option value="生活咨询">生活咨询</option>
+                    <option value="职场建议">职场建议</option>
+                    <option value="学习辅导">学习辅导</option>
+                    <option value="娱乐休闲">娱乐休闲</option>
+                    <option value="已整理">已整理</option>
+                </select>
+                <button id="organizeConversations" class="organize-btn">整理对话</button>
+                                <div id="organizeProgress" class="organize-progress" style="display: none;">
+                                    <div class="progress-bar">
+                                        <div id="progressFill" class="progress-fill"></div>
+                                    </div>
+                                    <div id="progressText" class="progress-text">0%</div>
+                                </div>
             </div>
             <div id="chatList" class="chat-list"></div>
         </div>
@@ -65,6 +107,7 @@
                             <option value="glm">GLM</option>
                             <option value="custom">自定义模型</option>
                             <option value="ollama">Ollama本地模型</option>
+                            <option value="xiaomi">小米MiMo-V2</option>
                         </select>
                         <div id="modelAvailabilityInfo" class="model-availability-info" style="margin-top: 5px; font-size: 0.8em; color: #666; display: none;">
                             <span id="modelUnavailableCount"></span>
@@ -205,7 +248,17 @@
                         <small>提示: 在输入框中输入单个按键</small>
                     </div>
                     
-
+                    
+                    
+                    <div class="setting-item">
+                        <h3>数据管理</h3>
+                        <p>对话数据管理</p>
+                        <p>&nbsp;</p>
+                        <button id="exportAllConversations" class="extend-btn">导出所有对话</button>
+                        <p>&nbsp;</p>
+                        <input type="file" id="importConversations" class="extend-input" accept=".XiaoRDialogue,.json" style="display: none;">
+                        <button id="importConversationsBtn" class="extend-btn">导入对话数据</button>
+                    </div>
                 </div>
                 
                 <!-- 更新与扩展栏目 -->
@@ -227,7 +280,7 @@
                     </div>
                     <div class="setting-item">
                         <h3>更新</h3>
-                        <p>当前版本: v1.1.2</p>
+                        <p>当前版本: v1.1.8</p>
                         <p>&nbsp;</p>
                         <button id="checkUpdateButton" class="update-btn">检查更新</button>
                     </div>
@@ -259,7 +312,7 @@
                         </div>
                     </div>
                     <div class="button-group">
-                        <button id="sendButton">发送</button>
+                        <button id="sendButton" class="send-btn"><i class="fa-solid fa-paper-plane fa-rotate-270 fa-xl" style="color: #ffffff;"></i></button>
                     </div>
                 </div>
             </div>
@@ -275,6 +328,7 @@
         <button id="translationMenuButton" class="skill-menu-btn" title="翻译助手">🌐 翻译</button>
         <button id="codeAssistantMenuButton" class="skill-menu-btn" title="AI编程助手">💻 编程</button>
         <button id="weatherMenuButton" class="skill-menu-btn" title="天气查询">🌤️ 天气查询</button>
+        <button id="newsInquiryMenuButton" class="skill-menu-btn" title="新闻查询">📰 新闻查询</button>
     </div>
     
     <!-- 自定义提示框 -->

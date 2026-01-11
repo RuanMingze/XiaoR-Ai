@@ -488,7 +488,7 @@ ipcMain.handle('clear-conversation-history', async (event) => {
 ipcMain.handle('send-ai-request', async (event, requestData) => {
   try {
     // 获取API端点，默认为Deepseek
-    let apiEndpoint = requestData.apiEndpoint || 'https://api.jkyai.top/API/depsek3.2.php';
+    let apiEndpoint = requestData.apiEndpoint || 'https://yunzhiapi.cn/API/depsek3.2.php';
     
     // 特殊处理GLM API，因为它有独特的参数格式
     if (apiEndpoint.includes('api.52vmy.cn/api/chat/glm')) {

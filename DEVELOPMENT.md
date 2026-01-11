@@ -50,10 +50,10 @@
 ## API接口
 
 ### AI对话API
-- DeepseekV3.2: `https://api.jkyai.top/API/depsek3.2.php`
-- 豆包: `https://api.jkyai.top/API/doubao.php`
-- 腾讯元宝: `https://api.jkyai.top/API/yuanbao.php`
-- Qwen3: `https://api.jkyai.top/API/qwen3.php`
+- DeepseekV3.2: `https://yunzhiapi.cn/API/depsek3.2.php`
+- 豆包: `https://yunzhiapi.cn/API/doubao.php`
+- 腾讯元宝: `https://yunzhiapi.cn/API/yuanbao.php`
+- Qwen3: `https://yunzhiapi.cn/API/qwen3.php`
 
 参数格式：
 ```
@@ -61,7 +61,7 @@ GET /API/endpoint.php?question={用户问题}&system={系统提示词}
 ```
 
 ### OCR识别API
-- 接口: `https://api.jkyai.top/API/deepseek-ocr.php`
+- 接口: `https://yunzhiapi.cn/API/deepseek-ocr.php`
 - 参数: `question={问题}&image={图片URL}`
 
 ## 代码结构

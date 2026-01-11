@@ -8,19 +8,19 @@
 
 ### 1. Deepseek系列
 - **DeepseekV3.2**: 高级对话模型，适用于复杂对话和内容生成
-- **API端点**: `https://api.jkyai.top/API/depsek3.2.php`
+- **API端点**: `https://yunzhiapi.cn/API/depsek3.2.php`
 - **特点**: 理解能力强，生成质量高
 
 ### 2. 豆包 (Doubao)
-- **API端点**: `https://api.jkyai.top/API/doubao.php`
+- **API端点**: `https://yunzhiapi.cn/API/doubao.php`
 - **特点**: 适合日常对话和知识问答
 
 ### 3. 腾讯元宝
-- **API端点**: `https://api.jkyai.top/API/yuanbao.php`
+- **API端点**: `https://yunzhiapi.cn/API/yuanbao.php`
 - **特点**: 中文理解能力强，适合中文对话场景
 
 ### 4. Qwen3
-- **API端点**: `https://api.jkyai.top/API/qwen3.php`
+- **API端点**: `https://yunzhiapi.cn/API/qwen3.php`
 - **特点**: 阿里巴巴通义千问最新版本，多语言支持
 
 ## AI代理功能
@@ -39,7 +39,7 @@
 
 ### 3. OCR识别代理
 - **功能**: 识别图片中的文字内容
-- **API端点**: `https://api.jkyai.top/API/deepseek-ocr.php`
+- **API端点**: `https://yunzhiapi.cn/API/deepseek-ocr.php`
 - **参数**:
   - `question`: 用户问题
   - `image`: 图片URL

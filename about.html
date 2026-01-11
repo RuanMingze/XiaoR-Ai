@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>关于 - 小R AI助手</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* 关于界面特有样式 */
+        .about-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+        
+        /* 自定义滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        /* 深色主题下的滚动条 */
+        .dark-theme ::-webkit-scrollbar-track {
+            background: #3a3a3a;
+        }
+
+        .dark-theme ::-webkit-scrollbar-thumb {
+            background: #5a5a5a;
+        }
+
+        .dark-theme ::-webkit-scrollbar-thumb:hover {
+            background: #6a6a6a;
+        }
+
+        .dark-theme .about-container {
+            background-color: #333;
+            color: #e0e0e0;
+        }
+
+        .about-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .dark-theme .about-header {
+            border-bottom: 1px solid #555;
+        }
+
+        .about-logo {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: #4a90e2;
+            background: linear-gradient(135deg, #4a90e2, #63b3ed);
+            border-radius: 50%;
+        }
+
+        .about-title {
+            font-size: 2em;
+            color: #333;
+            margin: 0 0 10px;
+        }
+
+        .dark-theme .about-title {
+            color: #e0e0e0;
+        }
+
+        .about-version {
+            font-size: 1.2em;
+            color: #666;
+            margin: 0;
+        }
+
+        .dark-theme .about-version {
+            color: #aaa;
+        }
+
+        .about-content {
+            line-height: 1.8;
+        }
+
+        .about-section {
+            margin-bottom: 25px;
+        }
+
+        .about-section h3 {
+            color: #4a90e2;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+        }
+
+        .dark-theme .about-section h3 {
+            color: #5a9bde;
+            border-bottom: 1px solid #555;
+        }
+
+        .about-section p {
+            margin: 10px 0;
+            color: #555;
+        }
+
+        .dark-theme .about-section p {
+            color: #ccc;
+        }
+
+        .about-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .feature-item {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #4a90e2;
+        }
+
+        .dark-theme .feature-item {
+            background-color: #444;
+        }
+
+        .feature-icon {
+            font-size: 1.5em;
+            color: #4a90e2;
+            margin-bottom: 8px;
+        }
+
+        .about-team {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .team-member {
+            flex: 1;
+            min-width: 200px;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .dark-theme .team-member {
+            background-color: #444;
+        }
+
+        .member-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #4a90e2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            font-size: 1.5em;
+            color: white;
+        }
+
+        .about-footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .dark-theme .about-footer {
+            border-top: 1px solid #555;
+            color: #aaa;
+        }
+
+        .back-button {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 8px 16px;
+            background-color: #4a90e2;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .back-button:hover {
+            background-color: #357ae8;
+        }
+
+        /* 自定义滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        /* 深色主题下的滚动条 */
+        .dark-theme ::-webkit-scrollbar-track {
+            background: #3a3a3a;
+        }
+
+        .dark-theme ::-webkit-scrollbar-thumb {
+            background: #5a5a5a;
+        }
+
+        .dark-theme ::-webkit-scrollbar-thumb:hover {
+            background: #6a6a6a;
+        }
+
+        /* 新年主题样式 */
+        .newyear-theme .about-container {
+            background-color: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(5px);
+            color: #333;
+        }
+
+        .newyear-theme .about-header {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .newyear-theme .about-section h3 {
+            color: #ff6b6b;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .newyear-theme .about-section p {
+            color: #333;
+        }
+
+        .newyear-theme .feature-item {
+            background-color: rgba(255, 255, 255, 0.6);
+        }
+
+        .newyear-theme .team-member {
+            background-color: rgba(255, 255, 255, 0.6);
+        }
+
+        .newyear-theme .about-footer {
+            border-top: 1px solid rgba(255, 255, 255, 0.3);
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="about-container">
+        <a href="index.html" class="back-button">← 返回主界面</a>
+        
+        <div class="about-header">
+            <div class="about-logo">
+                <!-- 使用应用图标，裁剪成圆角 -->
+                <img src="RuanmAi.png" alt="小R助手图标" width="100" height="100" style="border-radius: 50%; object-fit: cover;">
+            </div>
+            <h1 class="about-title">小R AI助手</h1>
+            <p class="about-version">版本: v1.1.8</p>
+        </div>
+        
+        <div class="about-content">
+            <div class="about-section">
+                <h3><i class="fas fa-info-circle"></i> 关于本软件</h3>
+                <p>小R AI助手是一款集成了多种AI模型的智能对话软件，旨在为用户提供便捷、高效的人工智能服务。软件支持多种AI模型，包括DeepseekV3.2、豆包、腾讯元宝、Qwen3等，满足不同场景下的需求。</p>
+                <p>我们的使命是让每个人都能轻松享受到人工智能带来的便利，无论是在学习、工作还是日常生活中。</p>
+            </div>
+            
+            <div class="about-section">
+                <h3><i class="fas fa-star"></i> 主要功能</h3>
+                <div class="about-features">
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <h4>智能对话</h4>
+                        <p>支持多轮对话，理解上下文，提供连贯的交流体验</p>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="fas fa-image"></i>
+                        </div>
+                        <h4>图片生成</h4>
+                        <p>根据描述生成高质量图片，激发创意灵感</p>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="fas fa-eye"></i>
+                        </div>
+                        <h4>OCR识别</h4>
+                        <p>识别图片中的文字内容，方便信息提取</p>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="fas fa-language"></i>
+                        </div>
+                        <h4>智能翻译</h4>
+                        <p>支持多语言互译，打破语言障碍</p>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="fas fa-code"></i>
+                        </div>
+                        <h4>编程助手</h4>
+                        <p>帮助编写和理解代码，提高开发效率</p>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="fas fa-cloud-sun-rain"></i>
+                        </div>
+                        <h4>天气查询</h4>
+                        <p>实时查询天气信息，出行规划更便捷</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="about-section">
+                <h3><i class="fas fa-users"></i> 开发团队</h3>
+                <div class="about-team">
+                    <div class="team-member">
+                        <div class="member-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <h4>Ruan Mingze</h4>
+                        <p>开发者</p>
+                    </div>
+                    <div class="team-member">
+                        <div class="member-avatar">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <h4>AI助手</h4>
+                        <p>辅助开发与贴图生成</p>
+                    </div>
+                </div>
+                <p>感谢所有为小R AI助手贡献和支持的用户和开发者！</p>
+            </div>
+            
+            <div class="about-section">
+                <h3><i class="fas fa-history"></i> 开发历程</h3>
+                <p>小R AI助手从最初的简单对话工具发展为如今的多功能AI助手，经历了多个版本的迭代：</p>
+                <ul>
+                    <li><strong>v1.0.1 (2025-12-31)</strong> - 新年快乐！新增新年特效（雪花、爆竹、烟花）、新年祝福显示、悬浮球功能、图片预览放大功能、技能状态持久化保存等</li>
+                    <li><strong>v1.0.8 (2026-01-01 ~ 2026-01-03)</strong> - 实现悬浮球点击切换迷你输入框功能、添加独立的迷你输入框窗口、大幅改版设置界面等</li>
+                    <li><strong>v1.1.2 (2026-01-03 ~ 2026-01-10)</strong> - 新增"关闭时直接退出"设置选项、添加新年主题和跟随系统选项、添加GLM模型、添加更新与扩展标签等</li>
+                    <li><strong>v1.1.8 (2026-01-10 ~ 2026-01-11)</strong> - 添加新闻查询技能、对话列表搜索和标签筛选功能、数据导出功能、复制按钮、MiMo-V2模型、改进默认提示词等</li>
+                </ul>
+            </div>
+            
+            <div class="about-section">
+                <h3><i class="fas fa-microchip"></i> 技术架构</h3>
+                <p>小R AI助手采用了现代化的技术栈：</p>
+                <ul>
+                    <li><strong>前端框架</strong>: HTML5, CSS3, JavaScript ES6+</li>
+                    <li><strong>桌面应用</strong>: Electron框架</li>
+                    <li><strong>AI模型集成</strong>: 支持多种API接口（Deepseek, 豆包, 腾讯元宝, Qwen3等）</li>
+                    <li><strong>UI组件</strong>: Font Awesome图标库</li>
+                    <li><strong>主题支持</strong>: 深色模式、新年主题等</li>
+                    <li><strong>数据存储</strong>: 本地LocalStorage</li>
+                    <li><strong>协议支持</strong>: XiaoR://自定义协议系统</li>
+                    <li><strong>API挑战</strong>: 经历了API接口不稳定、参数传递变化等挑战，现已支持包括GLM在内的多个稳定接口</li>
+                </ul>
+            </div>
+            
+            <div class="about-section">
+                <h3><i class="fas fa-hands-helping"></i> 特别致谢</h3>
+                <p>小R AI助手的开发离不开以下支持：</p>
+                <ul>
+                    <li>所有API提供商，为AI功能提供强大支持</li>
+                    <li>开源社区提供的技术和工具</li>
+                    <li>测试用户提供的宝贵反馈和建议</li>
+                    <li>Electron框架让跨平台桌面应用成为可能</li>
+                    <li>Font Awesome提供的精美图标</li>
+                    <li>所有支持和使用小R AI助手的朋友们</li>
+                </ul>
+            </div>
+            
+            <div class="about-section">
+                <h3><i class="fas fa-exclamation-triangle"></i> 开发挑战</h3>
+                <p>小R AI助手在开发过程中遇到了不少挑战：</p>
+                <ul>
+                    <li>API接口不稳定：曾经遇到API接口频繁崩溃的情况，需要不断寻找备用方案</li>
+                    <li>参数传递变化：API提供方调整了参数传递方式，需要适配新的参数格式</li>
+                    <li>提示词限制：某些API接口取消了独立的提示词参数，需要将提示词拼接到问题参数后</li>
+                    <li>模型可用性：持续监控各AI模型的可用性，及时调整和切换API接口</li>
+                </ul>
+            </div>
+            
+            <div class="about-section">
+                <h3><i class="fas fa-lightbulb"></i> 未来展望</h3>
+                <p>小R AI助手将持续进化，未来的计划包括：</p>
+                <ul>
+                    <li>集成更多先进的AI模型</li>
+                    <li>增加更多实用的AI技能</li>
+                    <li>优化用户体验和界面设计</li>
+                    <li>支持更多语言和地区</li>
+                    <li>增强离线功能和本地AI模型支持</li>
+                    <li>提供插件系统支持第三方扩展</li>
+                </ul>
+            </div>
+            
+            <div class="about-section">
+                <h3><i class="fas fa-link"></i> 相关链接</h3>
+                <p><i class="fas fa-globe"></i> <a href="https://github.com/RuanMingze/XiaoR-Ai/" target="_blank">GitHub 仓库</a></p>
+                <p><i class="fas fa-envelope"></i> 联系邮箱: xmt20160124@outlook.com</p>
+            </div>
+        </div>
+        
+        <div class="about-footer">
+            <p>&copy; 2024 Ruanm. 版权所有 | 小R AI助手 - 让AI更贴近生活</p>
+        </div>
+    </div>
+
+    <script>
+        // 加载保存的主题设置
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedSettings = localStorage.getItem('xiaor-settings');
+            if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+                
+                // 移除所有主题类
+                document.body.classList.remove('dark-theme', 'newyear-theme');
+                
+                // 应用保存的主题
+                if (settings.theme === 'dark') {
+                    document.body.classList.add('dark-theme');
+                } else if (settings.theme === 'newyear') {
+                    document.body.classList.add('newyear-theme');
+                } else if (settings.theme === 'system') {
+                    const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    if (isDarkMode) {
+                        document.body.classList.add('dark-theme');
+                    }
+                }
+            } else {
+                // 默认应用深色主题
+                document.body.classList.add('dark-theme');
+            }
+        });
+    </script>
+</body>
+</html>
