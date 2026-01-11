@@ -10,27 +10,27 @@ const rl = readline.createInterface({
 const aiModels = {
   '1': {
     name: 'DeepseekV3.2',
-    endpoint: 'https://api.jkyai.top/API/depsek3.2.php'
+    endpoint: 'https://yunzhiapi.cn/API/depsek3.2.php'
   },
   '2': {
     name: '豆包 (Doubao)',
-    endpoint: 'https://api.jkyai.top/API/doubao.php'
+    endpoint: 'https://yunzhiapi.cn/API/doubao.php'
   },
   '3': {
     name: '腾讯元宝',
-    endpoint: 'https://api.jkyai.top/API/yuanbao.php'
+    endpoint: 'https://yunzhiapi.cn/API/yuanbao.php'
   },
   '4': {
     name: 'Qwen3',
-    endpoint: 'https://api.jkyai.top/API/qwen3.php'
+    endpoint: 'https://yunzhiapi.cn/API/qwen3.php'
   },
   '5': {
     name: '蚂蚁Ling2.0',
-    endpoint: 'https://api.jkyai.top/API/ling-1t.php'
+    endpoint: 'https://yunzhiapi.cn/API/ling-1t.php'
   },
   '6': {
     name: 'Gemini-2.5',
-    endpoint: 'https://api.jkyai.top/API/gemini2.5/index.php'
+    endpoint: 'https://yunzhiapi.cn/API/gemini2.5/index.php'
   }
 };
 

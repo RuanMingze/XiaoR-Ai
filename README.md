@@ -69,16 +69,15 @@
 ## API接口
 
 应用使用以下API接口：
-- DeepseekV3.2: https://api.jkyai.top/API/depsek3.2.php
-- 豆包: https://api.jkyai.top/API/doubao.php
-- 腾讯元宝: https://api.jkyai.top/API/yuanbao.php
-- Qwen3: https://api.jkyai.top/API/qwen3.php
-- OCR识别: https://api.jkyai.top/API/deepseek-ocr.php
+- DeepseekV3.2: https://yunzhiapi.cn/API/depsek3.2.php
+- 豆包: https://yunzhiapi.cn/API/doubao.php
+- 腾讯元宝: https://yunzhiapi.cn/API/yuanbao.php
+- Qwen3: https://yunzhiapi.cn/API/qwen3.php
+- OCR识别: https://yunzhiapi.cn/API/deepseek-ocr.php
 
 ## 构建与打包
 
 使用electron-builder进行应用打包：
 ```bash
 npm run build
-
 ```

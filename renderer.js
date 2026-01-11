@@ -5,6 +5,7 @@ const sendButton = document.getElementById('sendButton');
 
 // 设置相关元素
 const settingsButton = document.getElementById('settingsButton');
+const aboutButton = document.getElementById('aboutButton');
 const settingsPanel = document.getElementById('settingsPanel');
 const themeSelect = document.getElementById('themeSelect');
 const contextSelect = document.getElementById('contextSelect');
@@ -164,12 +165,39 @@ function showImageModal(imageSrc) {
 
 // 修改parseMarkdown函数，增强代码块处理
 function parseMarkdown(text) {
+  // 提取XiaoR://ShowCode到XiaoR://CodeEnd之间的内容并暂存
+  const codeBlocks = [];
+  text = text.replace(/XiaoR:\/\/ShowCode\?Type=([\w\-\+]+)&Code=([\s\S]*?)(?=XiaoR:\/\/CodeEnd|(?=\n\n|\n$|$))/g, function(match, lang, code) {
+    // 解码URL编码的代码内容
+    code = decodeURIComponent(code);
+    
+    // 对代码进行转义以防止XSS攻击
+    const escapedCode = escapeHtml(code);
+    
+    // 生成一个唯一的占位符
+    const placeholder = `__XIAOR_CODE_PLACEHOLDER_${codeBlocks.length}__`;
+    
+    // 存储代码块信息
+    codeBlocks.push({
+      placeholder: placeholder,
+      lang: lang,
+      code: escapedCode
+    });
+    
+    return placeholder;
+  });
+  
+  // 移除XiaoR://CodeEnd标记
+  text = text.replace(/XiaoR:\/\/CodeEnd/g, '');
+  
   // 处理多行代码块（包含语言标识）
   text = text.replace(/```(\w+)?\n([\s\S]*?)```/g, function(match, lang, code) {
+    // 对代码进行转义以防止XSS攻击
+    const escapedCode = escapeHtml(code);
     if (lang) {
-      return `<pre class="code-block"><code class="language-${lang}">${code}</code></pre>`;
+      return `<div class="code-block-wrapper"><pre class="code-block"><code class="language-${lang}">${escapedCode}</code></pre><button class="copy-btn" onclick="copyCode(this)">复制</button></div>`;
     } else {
-      return `<pre class="code-block"><code>${code}</code></pre>`;
+      return `<div class="code-block-wrapper"><pre class="code-block"><code>${escapedCode}</code></pre><button class="copy-btn" onclick="copyCode(this)">复制</button></div>`;
     }
   });
   
@@ -186,24 +214,10 @@ function parseMarkdown(text) {
   text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
   
   // 自动识别并转换纯文本链接 (http, https, file)
-  text = text.replace(/\b(https?:\/\/|file:\/\/)[\w\-\.~:/?#\[\]@!\$&'\(\)\*\+,;=%]+/gi, '<a href="$&" target="_blank">$&</a>');
+  text = text.replace(/\b(https?:\/\/|file:\/\/)[\w\-\.~:\/?#\[\]@!\$&'\(\)\*\+,;=%]+/gi, '<a href="$&" target="_blank">$&</a>');
   
   // 处理XiaoR://Showimage，将其转换为显示本地图片
-  console.log('处理XiaoR://Showimage前:', text);
   text = text.replace(/XiaoR:\/\/Showimage/g, '<img src="RuanmAi.png" alt="小R形象图片" style="max-width: 200px; max-height: 200px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">');
-  console.log('处理XiaoR://Showimage后:', text);
-  
-  // 处理XiaoR://ShowCode协议，将其转换为可复制代码框
-  text = text.replace(/XiaoR:\/\/ShowCode\?Type=([\w\-\+]+)&Code=([\s\S]*?)(?=XiaoR:\/\/CodeEnd|(?=\n\n|\n$|$))/g, function(match, lang, code) {
-    // 解码URL编码的代码内容
-    code = decodeURIComponent(code);
-    
-    // 创建代码块HTML
-    return `<pre class="code-block"><code class="language-${lang}">${code}</code></pre>`;
-  });
-  
-  // 移除XiaoR://CodeEnd标记
-  text = text.replace(/XiaoR:\/\/CodeEnd/g, '');
   
   // 处理无序列表
   text = text.replace(/^\s*\-\s+(.*)$/gm, '<li>$1</li>');
@@ -224,8 +238,79 @@ function parseMarkdown(text) {
   // 处理段落
   text = text.replace(/^\s*(.+?)\s*$/gm, '<p>$1</p>');
   
+  // 将暂存的XiaoR代码块放回
+  codeBlocks.forEach(block => {
+    const codeBlockHtml = `<div class="code-block-wrapper"><pre class="code-block"><code class="language-${block.lang}">${block.code}</code></pre><button class="copy-btn" onclick="copyCode(this)">复制</button></div>`;
+    text = text.replace(block.placeholder, codeBlockHtml);
+  });
+  
+  // 为整个文本添加复制按钮容器
+  text = `<div class="ai-output-container"><span class="ai-content">${text}</span><div class="button-row"><div class="copy-btn-container"><button class="copy-all-btn" onclick="copyAiOutput(this)" title="复制全部内容"><span class="copy-icon">📋</span></button></div></div></div>`;
+  
   return text;
 }
+
+// 转义HTML字符以防止XSS攻击
+function escapeHtml(unsafe) {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+// 复制代码到剪贴板
+function copyCode(button) {
+  // 获取相邻的pre元素中的代码
+  const codeBlock = button.previousElementSibling;
+  const codeText = codeBlock.textContent || codeBlock.innerText;
+  
+  navigator.clipboard.writeText(codeText).then(function() {
+    // 临时更改按钮文本以提供反馈
+    const originalText = button.textContent;
+    button.textContent = '已复制';
+    setTimeout(() => {
+      button.textContent = originalText;
+    }, 2000);
+  }).catch(function(err) {
+    console.error('复制失败: ', err);
+  });
+}
+
+
+
+// 复制AI输出的全部内容
+function copyAiOutput(button) {
+  // 获取按钮所在的消息容器
+  const aiOutputContainer = button.closest('.ai-output-container');
+  
+  if (aiOutputContainer) {
+    // 获取容器内的所有文本内容，排除复制按钮本身
+    const clone = aiOutputContainer.cloneNode(true);
+    const copyButton = clone.querySelector('.copy-all-btn');
+    if (copyButton) {
+      copyButton.remove();
+    }
+    
+    const textToCopy = clone.textContent || clone.innerText;
+    
+    navigator.clipboard.writeText(textToCopy).then(function() {
+      // 临时更改按钮图标以提供反馈
+      const originalIcon = button.innerHTML;
+      button.innerHTML = '<span class="copy-icon">✅</span>';
+      setTimeout(() => {
+        button.innerHTML = originalIcon;
+      }, 2000);
+    }).catch(function(err) {
+      console.error('复制失败: ', err);
+    });
+  }
+}
+
+
+
+
 
 // 为代码块添加复制按钮
 function addCopyButtonToCodeBlock(codeElement) {
@@ -283,41 +368,7 @@ function addCopyButtonToCodeBlock(codeElement) {
   }
 }
 
-// 发送消息到聊天历史记录
-function addMessageToHistory(message, isUser = false, messageId = null) {
-  const messageDiv = document.createElement('div');
-  messageDiv.classList.add('message');
-  messageDiv.classList.add(isUser ? 'user' : 'ai');
-  
-  // 如果提供了messageId，则设置为该元素的ID
-  if (messageId) {
-    messageDiv.id = messageId;
-  }
-  
-  // 如果是AI消息，解析Markdown
-  if (!isUser) {
-    console.log('处理AI消息前:', message);
-    // 检查消息是否包含HTML标记或XiaoR协议，如果是，则直接使用innerHTML
-    // 这是为了处理图片生成结果、XiaoR://Showimage等包含HTML内容的消息
-    if (message.includes('<img') || message.includes('<br>') || message.includes('<small>') || message.includes('href=') || message.includes('XiaoR://')) {
-      console.log('消息包含HTML或XiaoR协议，直接使用innerHTML:', message);
-      messageDiv.innerHTML = message;
-    } else {
-      console.log('消息不包含HTML或XiaoR协议，使用parseMarkdown:', message);
-      messageDiv.innerHTML = parseMarkdown(message);
-    }
-    console.log('消息处理完成，innerHTML:', messageDiv.innerHTML);
-  } else {
-    messageDiv.textContent = message;
-  }
-  
-  chatHistory.appendChild(messageDiv);
-  
-  // 滚动到底部
-  chatHistory.scrollTop = chatHistory.scrollHeight;
-}
-
-// 添加消息到历史记录（支持动画输出）
+// 发送消息到聊天历史记录（支持动画输出）
 function addMessageToHistory(message, isUser = false, messageId = null, animate = false) {
   const messageDiv = document.createElement('div');
   messageDiv.classList.add('message');
@@ -329,7 +380,6 @@ function addMessageToHistory(message, isUser = false, messageId = null, animate 
   }
   
   if (!isUser && animate) {
-    console.log('处理AI消息前（动画模式）:', message);
     
     // 如果启用了动画输出，逐字显示
     messageDiv.textContent = '';
@@ -350,33 +400,167 @@ function addMessageToHistory(message, isUser = false, messageId = null, animate 
       } else {
         clearInterval(timer);
         
-        // 动画完成后，检查消息是否包含HTML标记或XiaoR协议，然后应用Markdown解析
-        if (message.includes('<img') || message.includes('<br>') || message.includes('<small>') || message.includes('href=') || message.includes('XiaoR://')) {
-          console.log('动画完成后，消息包含HTML或XiaoR协议，使用parseMarkdown:', message);
-          // 如果包含特殊标记，重新设置innerHTML以确保协议被正确解析
-          messageDiv.innerHTML = parseMarkdown(message);
-        }
-        console.log('动画消息处理完成，innerHTML:', messageDiv.innerHTML);
+        // 动画完成后，始终应用Markdown解析以确保按钮被添加
+        messageDiv.innerHTML = parseMarkdown(message);
+        
+        // 为新添加的复制按钮添加必要的事件监听器
+        // 确保按钮功能正常工作
+        const copyButtons = messageDiv.querySelectorAll('.copy-all-btn');
+        
+        copyButtons.forEach(btn => {
+          if (!btn.hasAttribute('data-initialized')) {
+            btn.setAttribute('data-initialized', 'true');
+          }
+        });
+        
+
       }
     }, 30); // 每30毫秒显示一个字符
   } else {
     // 如果是AI消息，解析Markdown
     if (!isUser) {
-      // 检查消息是否包含HTML标记，如果是，则直接使用innerHTML
-      // 这是为了处理图片生成结果等包含HTML内容的消息
-      if (message.includes('<img') || message.includes('<br>') || message.includes('<small>') || message.includes('href=')) {
+      // 检查消息是否包含HTML标记或XiaoR协议，如果是，则直接使用innerHTML
+      // 这是为了处理图片生成结果、XiaoR://Showimage等包含HTML内容的消息
+      if (message.includes('<img') || message.includes('<br>') || message.includes('<small>') || message.includes('href=') || message.includes('XiaoR://')) {
         messageDiv.innerHTML = message;
       } else {
         messageDiv.innerHTML = parseMarkdown(message);
       }
+      
+      // 为新添加的消息中的所有代码块添加复制按钮功能
+      const codeBlocks = messageDiv.querySelectorAll('.code-block-wrapper');
+      codeBlocks.forEach(wrapper => {
+        // 确保每个代码块都有复制功能
+        const copyBtn = wrapper.querySelector('.copy-btn');
+        if (copyBtn && !copyBtn.hasAttribute('data-initialized')) {
+          copyBtn.setAttribute('data-initialized', 'true');
+        }
+      });
     } else {
       messageDiv.textContent = message;
+      
+      // 为用户消息添加点击编辑功能
+      messageDiv.classList.add('editable-message');
+      messageDiv.addEventListener('click', function() {
+        editUserMessage(messageDiv, message, messageId);
+      });
     }
     chatHistory.appendChild(messageDiv);
     
     // 滚动到底部
     chatHistory.scrollTop = chatHistory.scrollHeight;
   }
+}
+
+// 编辑用户消息
+function editUserMessage(messageElement, originalMessage, messageId) {
+  // 创建编辑界面
+  const editDiv = document.createElement('div');
+  editDiv.className = 'message-edit-interface';
+  
+  // 创建文本域
+  const textarea = document.createElement('textarea');
+  textarea.value = originalMessage;
+  textarea.className = 'message-edit-textarea';
+  
+  // 添加键盘事件监听器以处理回车和Shift+回车
+  textarea.addEventListener('keydown', function(event) {
+    if (event.key === 'Enter') {
+      if (event.shiftKey) {
+        // Shift+回车：允许换行
+        return; // 不阻止默认行为
+      } else {
+        // 回车：保存编辑
+        event.preventDefault();
+        saveEditedMessage(messageElement, editDiv, textarea.value, messageId);
+      }
+    }
+  });
+  
+  // 创建按钮容器
+  const buttonContainer = document.createElement('div');
+  buttonContainer.className = 'message-edit-buttons';
+  
+  // 保存按钮
+  const saveButton = document.createElement('button');
+  saveButton.textContent = '保存';
+  saveButton.className = 'edit-save-btn';
+  saveButton.onclick = function() {
+    saveEditedMessage(messageElement, editDiv, textarea.value, messageId);
+  };
+  
+  // 取消按钮
+  const cancelButton = document.createElement('button');
+  cancelButton.textContent = '取消';
+  cancelButton.className = 'edit-cancel-btn';
+  cancelButton.onclick = function() {
+    cancelEditMessage(messageElement, editDiv, originalMessage, messageId);
+  };
+  
+  // 添加按钮到容器
+  buttonContainer.appendChild(saveButton);
+  buttonContainer.appendChild(cancelButton);
+  
+  // 添加元素到编辑界面
+  editDiv.appendChild(textarea);
+  editDiv.appendChild(buttonContainer);
+  
+  // 隐藏原始消息内容并添加编辑界面
+  messageElement.innerHTML = '';
+  messageElement.appendChild(editDiv);
+}
+
+// 保存编辑后的消息
+function saveEditedMessage(messageElement, editInterface, newMessage, messageId) {
+  if (newMessage.trim() === '') {
+    showNotification('消息不能为空');
+    return;
+  }
+  
+  // 更新消息显示
+  messageElement.innerHTML = '';
+  messageElement.classList.remove('editable-message');
+  messageElement.removeEventListener('click', editUserMessage);
+  messageElement.textContent = newMessage;
+  
+  // 重新添加编辑功能
+  messageElement.classList.add('editable-message');
+  messageElement.addEventListener('click', function() {
+    editUserMessage(messageElement, newMessage, messageId);
+  });
+  
+  // 重新发送AI请求，使用编辑后的消息
+  reSendAIRequest(newMessage);
+}
+
+// 取消编辑
+function cancelEditMessage(messageElement, editInterface, originalMessage, messageId) {
+  // 恢复原始消息显示
+  messageElement.innerHTML = '';
+  messageElement.classList.remove('editable-message');
+  messageElement.addEventListener('click', function() {
+    editUserMessage(messageElement, originalMessage, messageId);
+  });
+  messageElement.textContent = originalMessage;
+  
+  // 重新添加编辑功能
+  messageElement.classList.add('editable-message');
+  messageElement.addEventListener('click', function() {
+    editUserMessage(messageElement, originalMessage, messageId);
+  });
+}
+
+// 重新发送AI请求
+function reSendAIRequest(editedMessage) {
+  // 清除当前AI消息（最后一个AI消息）
+  const aiMessages = chatHistory.querySelectorAll('.message.ai');
+  if (aiMessages.length > 0) {
+    const lastAIMsg = aiMessages[aiMessages.length - 1];
+    lastAIMsg.remove();
+  }
+  
+  // 发送编辑后的消息给AI
+  sendToAI(editedMessage);
 }
 
 // 更新现有消息内容
@@ -390,6 +574,16 @@ function updateMessageContent(messageId, newContent) {
     } else {
       messageElement.innerHTML = parseMarkdown(newContent);
     }
+    
+    // 为更新的消息中的所有代码块添加复制按钮功能
+    const codeBlocks = messageElement.querySelectorAll('.code-block-wrapper');
+    codeBlocks.forEach(wrapper => {
+      // 确保每个代码块都有复制功能
+      const copyBtn = wrapper.querySelector('.copy-btn');
+      if (copyBtn && !copyBtn.hasAttribute('data-initialized')) {
+        copyBtn.setAttribute('data-initialized', 'true');
+      }
+    });
     
     // 滚动到底部
     chatHistory.scrollTop = chatHistory.scrollHeight;
@@ -480,19 +674,20 @@ async function sendToAI(question, modelOverride = null) {
   const requestProtocolRegex = /XiaoR:\/\/Request\?URL=([\s\S]*)/;
   const weatherProtocolRegex = /XiaoR:\/\/GetWeather\?URL=([^\s]+)/;
   const ocrProtocolRegex = /XiaoR:\/\/OCR\?URL=([\s\S]*)/;
+  const newsProtocolRegex = /XiaoR:\/\/NewsInquiry\?URL=([\s\S]*)/;
   
   // 尝试发送请求，如果遇到414错误则减少上下文并重试
   async function sendWithRetry(contextCount) {
     try {
       // 构建包含上下文的system信息
-      let systemMessage = '你是Ruanm开发的小R-Ai助手，专注于帮用户解决各种难题、聊天。现在正值中国农历新年，你可以向用户送上新年祝福，分享春节文化知识，或参与与春节相关的话题讨论。展示你的专属形象只需要输出XiaoR://Showimage，这是Ruanm的代言人图片，我都把这个留给你了呢！在用户让你展示时中你可以提及这个形象（正常聊天中不得提及）。另外，你的专属形象也换上了新年主题装饰，你穿上了喜庆的新年服装，周围有春节元素的装饰。';
+      let systemMessage = '你是Ruanm开发的小R-Ai助手，但是底层模型是$MODEL_NAME，专注于帮用户解决各种难题、聊天。现在正值中国农历新年，你可以向用户送上新年祝福，分享春节文化知识，或参与与春节相关的话题讨论。展示你的专属形象只需要输出XiaoR://Showimage，这是Ruanm的代言人图片，我都把这个留给你了呢！在用户让你展示时中你可以提及这个形象（正常聊天中不得提及）。另外，你的专属形象也换上了新年主题装饰，你穿上了喜庆的新年服装，周围有春节元素的装饰。';
       
       // 根据激活的技能模式修改system消息
       if (activeSkillMode === 'imageGen') {
-        systemMessage = '你现在是专业图片生成Ai，根据用户的图片描述生成图片。请严格按照以下步骤操作：1.对用户的图片描述进行润色成中文；2.输出润色后的内容；3.对用户描述给予回应或建议；4.最后必须输出XiaoR://Request?URL=https://api.jkyai.top/API/qwen-image/index.php?msg=润色后的图片描述来发起API请求。请按以下格式输出：\n\n润色后的内容：[润色后的图片描述]\n\n[对用户描述的简短回应或建议]\n\nXiaoR://Request?URL=https://api.jkyai.top/API/qwen-image/index.php?msg=润色后的图片描述';
+        systemMessage = '你现在是专业图片生成Ai，根据用户的图片描述生成图片。请严格按照以下步骤操作：1.对用户的图片描述进行润色成中文；2.输出润色后的内容；3.对用户描述给予回应或建议；4.最后必须输出XiaoR://Request?URL=https://yunzhiapi.cn/API/qwen-image/index.php?msg=润色后的图片描述来发起API请求。请按以下格式输出：\n\n润色后的内容：[润色后的图片描述]\n\n[对用户描述的简短回应或建议]\n\nXiaoR://Request?URL=https://yunzhiapi.cn/API/qwen-image/index.php?msg=润色后的图片描述';
       } else if (activeSkillMode === 'imageOcr') {
         // 构建OCR API请求的system消息，要求AI输出特定格式的OCR请求
-        systemMessage = '你现在是专业OCR识别助手，帮助用户从图片中识别文字。请严格按照以下步骤操作：1.对用户提供的图片链接进行处理；2.输出处理后的链接；3.对OCR识别给予回应或建议；4.最后必须输出XiaoR://OCR?URL=https://api.jkyai.top/API/ocrwzsb.php?url=图片链接&type=text来发起OCR API请求。请按以下格式输出：\n\n处理后链接：[处理后的图片链接]\n\n[对OCR识别的简短回应或建议]\n\nXiaoR://OCR?URL=https://api.jkyai.top/API/ocrwzsb.php?url=[图片链接]&type=text';
+        systemMessage = '你现在是专业OCR识别助手，帮助用户从图片中识别文字。请严格按照以下步骤操作：1.对用户提供的图片链接进行处理；2.输出处理后的链接；3.对OCR识别给予回应或建议；4.最后必须输出XiaoR://OCR?URL=https://yunzhiapi.cn/API/ocrwzsb.php?url=图片链接&type=text来发起OCR API请求。请按以下格式输出：\n\n处理后链接：[处理后的图片链接]\n\n[对OCR识别的简短回应或建议]\n\nXiaoR://OCR?URL=https://yunzhiapi.cn/API/ocrwzsb.php?url=[图片链接]&type=text';
         
         // 在DevTools中输出OCR请求日志
         console.log('OCR模式：准备发送OCR请求，问题:', question);
@@ -514,6 +709,12 @@ async function sendToAI(question, modelOverride = null) {
         
         // 在DevTools中输出天气查询请求日志
         console.log('天气查询模式：准备发送天气查询请求，问题:', question);
+      } else if (activeSkillMode === 'newsInquiry') {
+        // 新闻查询模式：要求AI输出特定格式的新闻查询请求
+        systemMessage = '你现在是专业新闻查询AI助手，根据用户提供的需求查询新闻。请严格按照以下步骤操作：1.对用户提供的查询需求进行分析；2.输出分析结果；3.对新闻查询给予回应或建议；4.最后必须输出XiaoR://NewsInquiry?URL=https://yunzhiapi.cn/API/txxwtt.php?page=用户要查询的数量&type=text来发起新闻API请求。请按以下格式输出：\n\n查询需求分析：[对用户需求的分析]\n\n[对新闻查询的简短回应或建议]\n\nXiaoR://NewsInquiry?URL=https://yunzhiapi.cn/API/txxwtt.php?page=用户要查询的数量&type=text';
+        
+        // 在DevTools中输出新闻查询请求日志
+        console.log('新闻查询模式：准备发送新闻查询请求，问题:', question);
       }
       
       // 获取当前对话的历史，添加到system信息中
@@ -534,15 +735,6 @@ async function sendToAI(question, modelOverride = null) {
         }
       }
       
-      // 准备请求数据
-      const requestData = {
-        ques: question,
-        system: systemMessage
-      };
-      
-      // 在DevTools中输出请求内容
-      console.log('发送AI请求:', requestData);
-      
       // 获取当前AI模型设置
       const savedSettings = localStorage.getItem('xiaor-settings');
       let aiModel = 'deepseek'; // 默认为Deepseek
@@ -558,19 +750,61 @@ async function sendToAI(question, modelOverride = null) {
         aiModel = modelOverride;
       }
       
+      // 根据当前选择的AI模型替换$MODEL_NAME变量
+      const aiModelNames = {
+        'deepseek': 'DeepseekV3.2',
+        'claude': '豆包',
+        'yuanbao': '腾讯元宝',
+        'qwen3': 'Qwen3',
+        'ling': '蚂蚁Ling2.0',
+        'gemini': 'Gemini-2.5',
+        'glm': 'GLM',
+        'xiaomi': '小米MiMo-V2',
+        'ollama': 'Ollama本地模型',
+        'custom': '自定义模型'
+      };
+      
+      const currentModelName = aiModelNames[aiModel] || '未知模型';
+      console.log('准备替换变量：原始systemMessage:', systemMessage);
+      console.log('当前AI模型:', aiModel, '对应模型名称:', currentModelName);
+      systemMessage = systemMessage.replace('\$MODEL_NAME', currentModelName);
+      console.log('替换后systemMessage:', systemMessage);
+      
+      // 准备请求数据
+      const requestData = {
+        ques: question,
+        system: systemMessage
+      };
+      
+      // 在DevTools中输出请求内容
+      console.log('发送AI请求:', requestData);
+      
       // 根据AI模型选择API端点
-      let apiEndpoint = 'https://api.jkyai.top/API/depsek3.2.php'; // 默认为Deepseek
+      let apiEndpoint = 'https://yunzhiapi.cn/API/depsek3.2.php'; // 默认为Deepseek
       if (aiModel === 'claude') {
-        apiEndpoint = 'https://api.jkyai.top/API/doubao.php'; // 豆包
+        apiEndpoint = 'https://yunzhiapi.cn/API/doubao.php'; // 豆包
       } else if (aiModel === 'yuanbao') {
-        apiEndpoint = 'https://api.jkyai.top/API/yuanbao.php'; // 腾讯元宝
+        apiEndpoint = 'https://yunzhiapi.cn/API/yuanbao.php'; // 腾讯元宝
       } else if (aiModel === 'qwen3') {
-        apiEndpoint = 'https://api.jkyai.top/API/qwen3.php'; // Qwen3
+        apiEndpoint = 'https://yunzhiapi.cn/API/qwen3.php'; // Qwen3
       } else if (aiModel === 'ling') {
-        apiEndpoint = 'https://api.jkyai.top/API/ling-1t.php'; // 蚂蚁Ling2.0
+        apiEndpoint = 'https://yunzhiapi.cn/API/ling-1t.php'; // 蚂蚁Ling2.0
       } else if (aiModel === 'gemini') {
-        apiEndpoint = 'https://api.jkyai.top/API/gemini2.5/index.php'; // Gemini-2.5
+        apiEndpoint = 'https://yunzhiapi.cn/API/gemini2.5/index.php'; // Gemini-2.5
       } else if (aiModel === 'glm') {
+        // 检查GLM模型请求频率限制
+        const now = Date.now();
+        const timeSinceLastGLMRequest = now - (window.lastGLMRequestTime || 0);
+        
+        // GLM模型有10秒频率限制
+        if (timeSinceLastGLMRequest < 10000) { // 10秒 = 10000毫秒
+          const remainingTime = Math.ceil((10000 - timeSinceLastGLMRequest) / 1000); // 剩余秒数
+          throw new Error(`GLM模型请求过于频繁，请等待${remainingTime}秒后再试`);
+        }
+        
+        // 更新最后请求时间
+        window.lastGLMRequestTime = now;
+        
         // GLM模型: 使用提供的API端点，将问题和系统提示词按特定格式拼接在msg参数中，并添加type=text参数
         apiEndpoint = `https://api.52vmy.cn/api/chat/glm?msg=${encodeURIComponent(question + '。提示词是：' + systemMessage)}&type=text`;
       } else if (aiModel === 'ollama') {
@@ -606,6 +840,9 @@ async function sendToAI(question, modelOverride = null) {
           console.error('Ollama请求失败:', ollamaError);
           throw new Error(`Ollama请求失败: ${ollamaError.message}`);
         }
+      } else if (aiModel === 'xiaomi') {
+        // 小米MiMo-V2 API，使用GET请求发送参数
+        apiEndpoint = `https://yunzhiapi.cn/API/xiaomi/index.php?question=${encodeURIComponent(requestData.ques)}&system=${encodeURIComponent(requestData.system)}&type=text`;
       } else if (aiModel === 'custom') {
         // 自定义模型：从设置中获取API URL并替换占位符
         if (settings && settings.customModelUrl) {
@@ -685,6 +922,14 @@ async function sendToAI(question, modelOverride = null) {
       } catch (error) {
         lastError = error;
         
+        // 检查是否为GLM模型频率限制错误
+        if (error.message.includes('GLM模型请求过于频繁')) {
+          // 如果是GLM频率限制错误，直接显示错误信息，不重试
+          addMessageToHistory(error.message, false, null, false);
+          hideLoading();
+          return; // 直接返回，不继续重试
+        }
+        
         // 如果是414错误，减少上下文数量并重试
         if (error.message.includes('414') || error.message.includes('Request-URI Too Large')) {
           console.log(`收到414错误，减少上下文数量从 ${currentContextCount} 到 ${currentContextCount - 2}`);
@@ -703,7 +948,12 @@ async function sendToAI(question, modelOverride = null) {
     }
     
     if (response) {
-      if (response.error) {
+      // 检查响应是否为空或无效
+      if (typeof response === 'string' && response.trim() === '') {
+        addMessageToHistory('AI返回内容为空，请稍后重试或尝试其他模型', false, null, false);
+        hideLoading();
+        return;
+      } else if (response.error) {
         addMessageToHistory(`错误: ${response.error}`, false, null, false);
       } else if (response.type === 'ollama_request') {
         // 处理Ollama请求
@@ -944,10 +1194,18 @@ async function sendToAI(question, modelOverride = null) {
         // 成功获取 AI 回复
         const aiResponse = response;
         
+        // 检查AI响应是否为空
+        if (!aiResponse || (typeof aiResponse === 'string' && aiResponse.trim() === '')) {
+          addMessageToHistory('AI未返回有效内容，请稍后重试或尝试其他模型', false, null, false);
+          hideLoading();
+          return;
+        }
+        
         // 检查AI响应是否包含各种协议
         const requestMatch = aiResponse.match(requestProtocolRegex);
         const weatherMatch = aiResponse.match(weatherProtocolRegex);
         const ocrMatch = aiResponse.match(ocrProtocolRegex);
+        const newsMatch = aiResponse.match(newsProtocolRegex);
         
         if (requestMatch) {
           // 提取请求URL
@@ -1209,19 +1467,108 @@ async function sendToAI(question, modelOverride = null) {
                 updateMessageInHistory(messageId, errorMessage);
               }
             } else {
-              // 检查是否启用动画输出
-              const savedSettings = localStorage.getItem('xiaor-settings');
-              let animationEnabled = false;
-              if (savedSettings) {
-                const settings = JSON.parse(savedSettings);
-                animationEnabled = settings.animationOutput || false;
+              // 检查AI响应是否包含XiaoR://NewsInquiry协议
+              const newsMatch = aiResponse.match(newsProtocolRegex);
+              
+              if (newsMatch) {
+                // 提取新闻请求URL
+                const newsUrl = newsMatch[1].trim();
+                
+                // 显示AI的原始响应，但隐藏XiaoR://NewsInquiry?URL=部分
+                const aiResponseWithoutProtocol = aiResponse.replace(newsProtocolRegex, '').trim();
+                addMessageToHistory(aiResponseWithoutProtocol, false, null, false);
+                
+                // 创建一个唯一的ID用于标识正在查询的消息
+                const messageId = 'news-request-' + Date.now();
+                
+                // 在AI输出下方显示"新闻正在查询中..."
+                const loadingMessage = '新闻正在查询中...';
+                addMessageToHistory(loadingMessage, false, messageId, false);
+                
+                // 同时将此消息添加到对话历史中
+                const currentHistory = getConversationHistory();
+                currentHistory.push({ role: 'assistant', content: loadingMessage });
+                setConversationHistory(currentHistory);
+                
+                // 发起新闻API请求
+                try {
+                  fetch(newsUrl)
+                    .then(newsResponse => newsResponse.text())
+                    .then(newsResult => {
+                      try {
+                        // 尝试解析JSON格式的新闻数据
+                        const newsData = JSON.parse(newsResult);
+                        
+                        if (newsData.status === 'success' && newsData.data && Array.isArray(newsData.data)) {
+                          // 格式化新闻数据
+                          let formattedNews = '📰 新闻查询成功！\n\n';
+                          
+                          newsData.data.forEach((article, index) => {
+                            formattedNews += `新闻${index + 1}：${article.title}\n`;
+                            formattedNews += `链接：${article.url}\n`;
+                            if (index < newsData.data.length - 1) {
+                              formattedNews += '\n'; // 在新闻之间添加空行
+                            }
+                          });
+                          
+                          // 更新消息内容为格式化的新闻结果
+                          updateMessageContent(messageId, formattedNews);
+                          
+                          // 更新对话历史中的这条消息
+                          updateMessageInHistory(messageId, formattedNews);
+                          
+                          // 播放新闻结果的语音（读出所有新闻标题）
+                          let voiceText = `新闻查询成功，为您找到${newsData.data.length}条新闻。`;
+                          for (let i = 0; i < newsData.data.length; i++) {
+                            voiceText += `新闻${i + 1}：${newsData.data[i].title}。`;
+                          }
+                          playAIVoice(voiceText);
+                        } else {
+                          // 如果不是预期的JSON格式，直接显示原始结果
+                          const formattedResult = `📰 新闻查询成功！\n\n${newsResult}`;
+                          updateMessageContent(messageId, formattedResult);
+                          updateMessageInHistory(messageId, formattedResult);
+                          playAIVoice(`新闻查询成功，查询到的新闻是：${newsResult}`);
+                        }
+                      } catch (parseError) {
+                        // 如果JSON解析失败，直接显示原始结果
+                        const formattedResult = `📰 新闻查询成功！\n\n${newsResult}`;
+                        updateMessageContent(messageId, formattedResult);
+                        updateMessageInHistory(messageId, formattedResult);
+                        playAIVoice(`新闻查询成功，查询到的新闻是：${newsResult}`);
+                      }
+                    })
+                    .catch(error => {
+                      console.error('新闻API请求失败:', error);
+                      const errorMessage = `新闻查询失败: ${error.message}`;
+                      updateMessageContent(messageId, errorMessage);
+                      
+                      // 更新对话历史中的这条消息
+                      updateMessageInHistory(messageId, errorMessage);
+                    });
+                } catch (error) {
+                  console.error('处理新闻API请求时出错:', error);
+                  const errorMessage = `处理新闻请求时出错: ${error.message}`;
+                  updateMessageContent(messageId, errorMessage);
+                  
+                  // 更新对话历史中的这条消息
+                  updateMessageInHistory(messageId, errorMessage);
+                }
+              } else {
+                // 检查是否启用动画输出
+                const savedSettings = localStorage.getItem('xiaor-settings');
+                let animationEnabled = false;
+                if (savedSettings) {
+                  const settings = JSON.parse(savedSettings);
+                  animationEnabled = settings.animationOutput || false;
+                }
+                
+                // 正常处理AI响应
+                addMessageToHistory(aiResponse, false, null, animationEnabled);
+                
+                // 播放AI语音回复
+                playAIVoice(aiResponse);
               }
-              
-              // 正常处理AI响应
-              addMessageToHistory(aiResponse, false, null, animationEnabled);
-              
-              // 播放AI语音回复
-              playAIVoice(aiResponse);
             }
           }
         }
@@ -1230,7 +1577,7 @@ async function sendToAI(question, modelOverride = null) {
         const currentHistory = getConversationHistory();
         currentHistory.push({ role: 'user', content: question });
         
-        // 对于图片生成、天气查询和OCR请求，保存处理后的AI响应（去除协议部分）
+        // 对于图片生成、天气查询、OCR和新闻查询请求，保存处理后的AI响应（去除协议部分）
         if (requestMatch) {
           // 保存AI响应但去除协议部分
           const aiResponseWithoutProtocol = aiResponse.replace(requestProtocolRegex, '').trim();
@@ -1246,6 +1593,11 @@ async function sendToAI(question, modelOverride = null) {
           const aiResponseWithoutProtocol = aiResponse.replace(ocrProtocolRegex, '').trim();
           currentHistory.push({ role: 'assistant', content: aiResponseWithoutProtocol });
           // 注意："正在获取文字..."消息已经在此前添加
+        } else if (newsMatch) {
+          // 保存AI响应但去除新闻查询协议部分
+          const aiResponseWithoutProtocol = aiResponse.replace(newsProtocolRegex, '').trim();
+          currentHistory.push({ role: 'assistant', content: aiResponseWithoutProtocol });
+          // 注意："新闻正在查询中..."消息已经在此前添加
         } else {
           // 对于非特殊请求，保存完整的AI响应
           currentHistory.push({ role: 'assistant', content: aiResponse });
@@ -1364,6 +1716,7 @@ const imageOcrMenuButton = document.getElementById('imageOcrMenuButton');
 const translationMenuButton = document.getElementById('translationMenuButton');
 const codeAssistantMenuButton = document.getElementById('codeAssistantMenuButton');
 const weatherMenuButton = document.getElementById('weatherMenuButton');
+const newsInquiryMenuButton = document.getElementById('newsInquiryMenuButton');
 
 if (imageGenMenuButton && imageGenMenuButton.closest('#skillMenu')) {
   imageGenMenuButton.addEventListener('click', (event) => {
@@ -1459,6 +1812,27 @@ if (weatherMenuButton && weatherMenuButton.closest('#skillMenu')) {
     } else {
       activeSkillMode = 'weather';
       showNotification('已切换到天气查询模式');
+    }
+    skillMenu.style.display = 'none';
+    document.removeEventListener('click', hideSkillMenu);
+    // 更新按钮状态
+    updateSkillButtonStates();
+    
+    // 保存技能状态
+    saveSkillState();
+  });
+}
+
+if (newsInquiryMenuButton && newsInquiryMenuButton.closest('#skillMenu')) {
+  newsInquiryMenuButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    // 切换到新闻查询模式或取消
+    if (activeSkillMode === 'newsInquiry') {
+      activeSkillMode = null;
+      showNotification('已取消新闻查询模式');
+    } else {
+      activeSkillMode = 'newsInquiry';
+      showNotification('已切换到新闻查询模式');
     }
     skillMenu.style.display = 'none';
     document.removeEventListener('click', hideSkillMenu);
@@ -1798,8 +2172,387 @@ function addNewYearButtonEffects() {
   });
 }
 
+// 显示引导教程
+function showTutorial() {
+  // 创建引导框（无遮罩）
+  const overlay = document.createElement('div');
+  overlay.id = 'tutorial-overlay';
+  overlay.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 9998;
+  `;
+  
+  // 创建引导内容容器
+  const tutorialBox = document.createElement('div');
+  tutorialBox.id = 'tutorial-box';
+  tutorialBox.style.cssText = `
+    background: #2d2d2d;
+    border-radius: 10px;
+    padding: 20px;
+    max-width: 350px;
+    width: 350px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    position: relative;
+    color: #e0e0e0;
+    border: 1px solid #444;
+  `;
+  
+  // 当前步骤
+  let currentStep = 0;
+  
+  // 引导步骤内容
+  const steps = [
+    {
+      title: "欢迎使用小R助手",
+      content: "这是一个智能AI助手，接下来将为您介绍主要功能。",
+      highlightSelector: null
+    },
+    {
+      title: "设置功能",
+      content: "点击此处可以进入设置界面，自定义主题、AI模型、快捷键等。",
+      highlightSelector: '#settingsButton'
+    },
+    {
+      title: "对话管理",
+      content: "这里可以新建对话、查看对话列表，方便管理您的对话记录。",
+      highlightSelector: '#newChatButton, #chatListButton'
+    },
+    {
+      title: "AI技能",
+      content: "点击技能按钮可以使用图片生成、OCR识别、翻译等专业功能。",
+      highlightSelector: '#skillButton'
+    },
+    {
+      title: "开始使用",
+      content: "现在您可以开始使用小R助手了！在下方输入框中输入您的问题，点击发送即可。",
+      highlightSelector: '#userInput, #sendButton'
+    }
+  ];
+  
+  // 添加拖动功能
+  let isDragging = false;
+  let currentX;
+  let currentY;
+  let initialX;
+  let initialY;
+  let xOffset = 0;
+  let yOffset = 0;
+  
+  // 为引导框添加可拖动的标题栏
+  const titleBar = document.createElement('div');
+  titleBar.style.cssText = `
+    background: #222;
+    border-radius: 10px 10px 0 0;
+    padding: 10px 15px;
+    margin: -20px -20px 15px -20px;
+    cursor: move;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #444;
+  `;
+  
+  const titleText = document.createElement('span');
+  titleText.textContent = '使用引导';
+  titleText.style.fontWeight = 'bold';
+  
+  const closeButton = document.createElement('button');
+  closeButton.innerHTML = '&times;';
+  closeButton.style.cssText = `
+    background: #555;
+    color: white;
+    border: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+  `;
+  
+  closeButton.onclick = () => {
+    finishTutorial();
+  };
+  
+  titleBar.appendChild(titleText);
+  titleBar.appendChild(closeButton);
+  tutorialBox.insertBefore(titleBar, tutorialBox.firstChild);
+  
+  const dragStart = (e) => {
+    // 如果点击的是引导框背景或其子元素（但不是按钮），则允许拖动
+    if (e.target === tutorialBox || tutorialBox.contains(e.target)) {
+      // 排除按钮元素，避免拖动和点击冲突
+      if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+        initialX = e.clientX - xOffset;
+        initialY = e.clientY - yOffset;
+        isDragging = true;
+      }
+    }
+  };
+  
+  const dragEnd = () => {
+    initialX = currentX;
+    initialY = currentY;
+    isDragging = false;
+  };
+  
+  const drag = (e) => {
+    if (isDragging) {
+      e.preventDefault();
+      currentX = e.clientX - initialX;
+      currentY = e.clientY - initialY;
+      
+      xOffset = currentX;
+      yOffset = currentY;
+      
+      setTranslate(currentX, currentY, overlay);
+    }
+  };
+  
+  const setTranslate = (xPos, yPos, el) => {
+    el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
+  };
+  
+  titleBar.addEventListener('mousedown', dragStart);
+  document.addEventListener('mousemove', drag);
+  document.addEventListener('mouseup', dragEnd);
+  
+  // 更新引导内容
+  function updateTutorialContent() {
+    // 先取消之前步骤的高亮
+    unhighlightElements();
+    
+    const step = steps[currentStep];
+    
+    tutorialBox.innerHTML = `
+      <h3 style="margin: 0 0 15px; color: #4a90e2;">${step.title}</h3>
+      <p style="margin: 0 0 20px; line-height: 1.5;">${step.content}</p>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="color: #666; font-size: 0.9em;">第 ${currentStep + 1} 步，共 ${steps.length} 步</span>
+        <div>
+          <button id="prevBtn" ${currentStep === 0 ? 'disabled' : ''} style="padding: 8px 15px; margin-right: 10px; border-radius: 4px; border: 1px solid #ccc; background: #f0f0f0; cursor: ${currentStep === 0 ? 'not-allowed' : 'pointer'};">上一步</button>
+          <button id="nextBtn" style="padding: 8px 15px; border-radius: 4px; border: none; background: #4a90e2; color: white; cursor: pointer;">${currentStep === steps.length - 1 ? '完成' : '下一步'}</button>
+        </div>
+      </div>
+    `;
+    
+    // 高亮当前步骤对应的元素
+    if (step.highlightSelector) {
+      highlightElements(step.highlightSelector);
+    }
+    
+    // 绑定按钮事件
+    setTimeout(() => {
+      const prevBtn = document.getElementById('prevBtn');
+      if (currentStep > 0 && prevBtn) {
+        prevBtn.addEventListener('click', goToPrevStep);
+      }
+      
+      const nextBtn = document.getElementById('nextBtn');
+      if (nextBtn) {
+        nextBtn.addEventListener('click', goToNextStep);
+      }
+    }, 0);
+  }
+  
+  // 高亮元素
+  function highlightElements(selector) {
+    try {
+      const elements = document.querySelectorAll(selector);
+      elements.forEach(el => {
+        if (el) {
+          el.style.transition = 'all 0.3s ease';
+          el.style.outline = '3px solid #4a90e2';
+          el.style.outlineOffset = '2px';
+          
+          // 标记这个元素已被引导教程高亮
+          el.setAttribute('data-tutorial-highlighted', 'true');
+          
+          // 只有当元素的position为static时才设置为relative
+          if (window.getComputedStyle(el).position === 'static') {
+            el.style.position = 'relative';
+            // 记录我们改变了这个元素的position属性，以便后续恢复
+            el.setAttribute('data-original-position', 'static');
+          }
+          
+          // 添加高亮提示箭头
+          const arrow = document.createElement('div');
+          arrow.className = 'tutorial-arrow';
+          arrow.style.cssText = `
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: #4a90e2;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 9999;
+            animation: pulse 1.5s infinite;
+            pointer-events: none; /* 避免箭头干扰鼠标事件 */
+          `;
+          
+          // 计算箭头位置
+          const rect = el.getBoundingClientRect();
+          arrow.style.left = (rect.left + rect.width + 10) + 'px';
+          arrow.style.top = (rect.top + rect.height/2 - 15) + 'px';
+          
+          document.body.appendChild(arrow);
+        }
+      });
+    } catch (e) {
+      console.error('高亮元素时出错:', e);
+    }
+  }
+  
+  // 取消高亮元素
+  function unhighlightElements() {
+    try {
+      // 查找所有被引导教程高亮的元素
+      const tutorialHighlightedElems = document.querySelectorAll('[data-tutorial-highlighted="true"]');
+      tutorialHighlightedElems.forEach(el => {
+        // 移除高亮样式
+        el.style.outline = '';
+        el.style.outlineOffset = '';
+        
+        // 移除高亮标记
+        el.removeAttribute('data-tutorial-highlighted');
+        
+        // 如果元素原本是static定位，恢复它
+        if (el.getAttribute('data-original-position') === 'static') {
+          el.style.position = 'static';
+          el.removeAttribute('data-original-position');
+        }
+      });
+      
+      // 移除所有箭头
+      const arrows = document.querySelectorAll('.tutorial-arrow');
+      arrows.forEach(arrow => arrow.remove());
+    } catch (e) {
+      console.error('取消高亮元素时出错:', e);
+    }
+  }
+  
+  // 下一步
+  function goToNextStep() {
+    if (currentStep < steps.length - 1) {
+      currentStep++;
+      updateTutorialContent();
+    } else {
+      finishTutorial();
+    }
+  }
+  
+  // 上一步
+  function goToPrevStep() {
+    if (currentStep > 0) {
+      currentStep--;
+      updateTutorialContent();
+    }
+  }
+  
+  // 完成引导
+  function finishTutorial() {
+    try {
+      if (overlay && document.body.contains(overlay)) {
+        document.body.removeChild(overlay);
+      }
+    } catch (e) {
+      console.error('移除引导遮罩时出错:', e);
+    }
+    
+    unhighlightElements();
+    
+    // 标记引导已完成
+    localStorage.removeItem('showTutorial');
+  }
+  
+  // 添加脉冲动画样式和引导教程样式
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes pulse {
+      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(74, 144, 226, 0.7); }
+      70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(74, 144, 226, 0); }
+      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(74, 144, 226, 0); }
+    }
+    
+    /* 引导教程样式 - 始终使用深色模式样式 */
+    #tutorial-box {
+      background: #2d2d2d !important;
+      color: #e0e0e0 !important;
+    }
+    
+    #tutorial-box h3 {
+      color: #64b5f6 !important;
+    }
+    
+    #tutorial-box p {
+      color: #e0e0e0 !important;
+    }
+    
+    #tutorial-box #prevBtn {
+      background: #444 !important;
+      color: #e0e0e0 !important;
+      border: 1px solid #666 !important;
+    }
+    
+    #tutorial-box #prevBtn:disabled {
+      background: #333 !important;
+      color: #888 !important;
+      cursor: not-allowed !important;
+    }
+    
+    #tutorial-box #nextBtn {
+      background: #4a90e2 !important;
+      color: white !important;
+    }
+    
+    .tutorial-arrow {
+      background: #64b5f6 !important;
+    }
+    
+    /* 遮罩样式 */
+    #tutorial-overlay {
+      background-color: rgba(0, 0, 0, 0.8) !important;
+    }
+    
+    /* 高亮样式 */
+    [data-tutorial-highlighted="true"] {
+      outline-color: #64b5f6 !important;
+    }
+  `;
+  document.head.appendChild(style);
+  
+  // 初始化引导内容
+  updateTutorialContent();
+  
+  // 添加到页面
+  overlay.appendChild(tutorialBox);
+  document.body.appendChild(overlay);
+  
+  
+}
+
 // 初始化欢迎消息
 document.addEventListener('DOMContentLoaded', async () => {
+  // 检查是否需要显示引导教程
+  if (localStorage.getItem('showTutorial') === 'true') {
+    // 稍微延迟一下，确保页面元素已加载
+    setTimeout(() => {
+      try {
+        showTutorial();
+      } catch (e) {
+        console.error('显示引导教程时出错:', e);
+        // 即使引导出错，也要确保移除标志
+        localStorage.removeItem('showTutorial');
+      }
+    }, 500);
+  }
   // 显示新年祝福
   if (shouldShowNewYearGreeting()) {
     showNewYearGreeting();
@@ -2036,7 +2789,7 @@ async function playAIVoice(text) {
     }
     
     // 构建API URL，如果设置了音色则添加voice参数
-    let apiUrl = `https://api.jkyai.top/API/jhyysc.php?msg=${encodeURIComponent(textWithoutEmojis)}`;
+    let apiUrl = `https://yunzhiapi.cn/API/jhyysc.php?msg=${encodeURIComponent(textWithoutEmojis)}`;
     if (voiceType) {
       apiUrl += `&voice=${voiceType}`;
     }
@@ -2402,6 +3155,23 @@ settingsButton.addEventListener('click', () => {
   settingsPanel.classList.add('active');
 });
 
+// 关于按钮事件监听器
+aboutButton.addEventListener('click', () => {
+  // 在新窗口中打开关于页面
+  if (window.electronAPI && window.electronAPI.openAboutWindow) {
+    window.electronAPI.openAboutWindow();
+  } else {
+    // 如果没有electronAPI，使用标准窗口打开
+    const aboutWindow = window.open('about.html', '_blank', 'width=800,height=600,resizable=yes,scrollbars=yes');
+    if (aboutWindow) {
+      aboutWindow.focus();
+    } else {
+      // 如果弹窗被阻止，则在当前窗口打开
+      window.location.href = 'about.html';
+    }
+  }
+});
+
 // AI模型选择变化事件监听器
 aiModelSelect.addEventListener('change', () => {
   if (aiModelSelect.value === 'custom') {
@@ -2430,42 +3200,9 @@ voiceToggle.addEventListener('change', () => {
   }
 });
 
-// 悬浮球开关事件监听器
-floatingBallToggle.addEventListener('change', () => {
-  // 通知主进程更新悬浮球显示状态
-  if (window.electronAPI && window.electronAPI.updateFloatingBallVisibility) {
-    window.electronAPI.updateFloatingBallVisibility(floatingBallToggle.checked);
-  }
-});
-
 saveSettingsButton.addEventListener('click', () => {
   saveSettings();
   settingsPanel.classList.remove('active');
-});
-
-// 快捷键设置按钮事件监听器
-setShortcutButton.addEventListener('click', () => {
-  const newShortcutKey = shortcutKeyInput.value.trim();
-  if (newShortcutKey) {
-    const newShortcut = shortcutPrefix.textContent + newShortcutKey.toUpperCase();
-    
-    // 通知主进程更新快捷键
-    if (window.electronAPI && window.electronAPI.updateShortcut) {
-      window.electronAPI.updateShortcut(newShortcut);
-      showNotification('快捷键已更新: ' + newShortcut);
-    }
-    
-    // 更新本地存储中的快捷键设置
-    const savedSettings = localStorage.getItem('xiaor-settings');
-    let settings = {};
-    if (savedSettings) {
-      settings = JSON.parse(savedSettings);
-    }
-    settings.shortcutKey = newShortcut;
-    localStorage.setItem('xiaor-settings', JSON.stringify(settings));
-  } else {
-    showNotification('请输入有效的快捷键');
-  }
 });
 
 closeSettingsButton.addEventListener('click', () => {
@@ -2491,6 +3228,8 @@ window.addEventListener('click', (event) => {
 const chatListButton = document.getElementById('chatListButton');
 const chatListSidebar = document.getElementById('chatListSidebar');
 const closeChatListButton = document.getElementById('closeChatList');
+const chatSearch = document.getElementById('chatSearch');
+const chatTagFilter = document.getElementById('chatTagFilter');
 
 // 打开对话列表
 chatListButton.addEventListener('click', () => {
@@ -2510,6 +3249,255 @@ window.addEventListener('click', (event) => {
     chatListSidebar.classList.remove('active');
   }
 });
+
+// 对话搜索和标签过滤功能
+chatSearch.addEventListener('input', () => {
+  const searchTerm = chatSearch.value.toLowerCase();
+  const selectedTag = chatTagFilter ? chatTagFilter.value : '';
+  
+  if (searchTerm.trim() === '' && selectedTag === '') {
+    // 如果搜索框为空且没有选择特定标签，显示所有对话
+    updateChatListDisplay();
+  } else {
+    // 组合搜索和标签过滤
+    let filteredConversations = allConversations;
+    
+    // 如果有搜索词，先按搜索过滤
+    if (searchTerm.trim() !== '') {
+      filteredConversations = filteredConversations.filter(conversation => 
+        conversation.title.toLowerCase().includes(searchTerm) ||
+        conversation.history.some(message => 
+          message.content.toLowerCase().includes(searchTerm)
+        )
+      );
+    }
+    
+    // 如果选择了特定标签，再按标签过滤
+    if (selectedTag !== '') {
+      filteredConversations = filteredConversations.filter(conversation => 
+        (conversation.tags && conversation.tags.includes(selectedTag)) ||
+        (selectedTag === '未分类' && (!conversation.tags || conversation.tags.length === 0 || (conversation.tags.length > 0 && conversation.tags[0] === '未分类')))
+      );
+    }
+    
+    updateChatListDisplay(filteredConversations);
+  }
+});
+
+// 对话标签过滤功能
+chatTagFilter.addEventListener('change', () => {
+  const searchTerm = chatSearch.value.toLowerCase();
+  const selectedTag = chatTagFilter.value;
+  
+  if (searchTerm.trim() === '' && selectedTag === '') {
+    // 如果搜索框为空且没有选择特定标签，显示所有对话
+    updateChatListDisplay();
+  } else {
+    // 组合搜索和标签过滤
+    let filteredConversations = allConversations;
+    
+    // 如果有搜索词，先按搜索过滤
+    if (searchTerm.trim() !== '') {
+      filteredConversations = filteredConversations.filter(conversation => 
+        conversation.title.toLowerCase().includes(searchTerm) ||
+        conversation.history.some(message => 
+          message.content.toLowerCase().includes(searchTerm)
+        )
+      );
+    }
+    
+    // 如果选择了特定标签，再按标签过滤
+    if (selectedTag !== '') {
+      filteredConversations = filteredConversations.filter(conversation => 
+        (conversation.tags && conversation.tags.includes(selectedTag)) ||
+        (selectedTag === '未分类' && (!conversation.tags || conversation.tags.length === 0 || (conversation.tags.length > 0 && conversation.tags[0] === '未分类')))
+      );
+    }
+    
+    updateChatListDisplay(filteredConversations);
+  }
+});
+
+// 整理对话功能
+const organizeConversationsBtn = document.getElementById('organizeConversations');
+const organizeProgress = document.getElementById('organizeProgress');
+const progressFill = document.getElementById('progressFill');
+const progressText = document.getElementById('progressText');
+if (organizeConversationsBtn) {
+  organizeConversationsBtn.addEventListener('click', async () => {
+    // 确认是否要整理所有对话
+    const confirmed = await showCustomConfirm('确认整理对话', '确定要整理所有对话吗？这将为未分类的对话分配标签，并删除空对话。此操作可能需要一些时间。', '取消', '开始整理');
+    if (!confirmed) {
+      return;
+    }
+    
+    try {
+      // 显示进度条
+      if (organizeProgress) organizeProgress.style.display = 'block';
+      
+      // 记录操作统计
+      let classifiedCount = 0;
+      let emptyCount = 0;
+      let skippedCount = 0;
+      
+      // 计算总需要处理的对话数
+      const totalConversations = allConversations.length;
+      let processedCount = 0;
+      
+      // 模拟进度更新
+      const updateProgress = (percentage) => {
+        if (progressFill) progressFill.style.width = `${percentage}%`;
+        if (progressText) progressText.textContent = `${Math.round(percentage)}%`;
+      };
+      
+      // 模拟进度 - 先快后慢，在99%卡住
+      const simulateProgress = async (onProgress) => {
+        // 快速达到一定百分比
+        for (let percent = 0; percent <= 60; percent += 5) {
+          onProgress(percent);
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        
+        // 开始变慢
+        for (let percent = 60; percent <= 90; percent += 2) {
+          onProgress(percent);
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        // 更慢
+        for (let percent = 90; percent < 99; percent += 1) {
+          onProgress(percent);
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+        
+        // 在99%卡住几秒
+        onProgress(99);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // 最终完成
+        onProgress(100);
+      };
+      
+      // 开始模拟进度
+      simulateProgress(updateProgress);
+      
+      // 遍历所有对话，先分类未分类的对话
+      for (const conversation of allConversations) {
+        // 检查是否已整理过
+        if (conversation.tags && conversation.tags.includes('已整理')) {
+          skippedCount++;
+          processedCount++;
+          continue; // 跳过已整理的对话
+        }
+        
+        // 只对没有标签或标签为'未分类'的对话进行分类
+        if (!conversation.tags || conversation.tags.length === 0 || conversation.tags[0] === '未分类') {
+          // 从对话历史中提取第一条用户消息用于分析
+          const firstUserMessage = conversation.history.find(item => item.role === 'user');
+          
+          if (firstUserMessage) {
+            try {
+              // 构建请求数据，让AI为对话生成标签
+              const requestData = {
+                ques: `请分析以下对话内容并为其分配一个最适合的标签，只需要输出一个标签名称，从以下选项中选择：通用对话、问题解答、技术支持、学术讨论、编程帮助、创意写作、语言翻译、数学计算、生活咨询、职场建议、学习辅导、娱乐休闲。如果都不合适，请输出“未分类”。\n\n对话内容：${firstUserMessage.content.substring(0, 200)}...`,
+                system: '你是Ruanm开发的小R-Ai助手。现在需要为一个对话分配标签。请只输出一个标签名称，不要添加任何其他内容。'
+              };
+              
+              // 通过 Electron API 发送请求
+              const response = await window.electronAPI.sendAIRequest(requestData);
+              
+              if (response && response.trim()) {
+                // 清理响应内容
+                let tag = response.trim().replace(/[\r\n\t\s]/g, '');
+                
+                // 使用预设标签匹配函数来确保标签符合预设类型
+                tag = getMatchingPresetTag(tag);
+                
+                // 更新对话标签，同时添加'已整理'标签
+                conversation.tags = [tag, '已整理'];
+                
+                console.log(`对话已分类: ${conversation.title} -> ${tag}`);
+                classifiedCount++;
+              }
+            } catch (error) {
+              console.error(`为对话分类时出错:`, error);
+              // 出错时将标签设为'未分类'，并添加'已整理'标签
+              conversation.tags = ['未分类', '已整理'];
+            }
+          } else {
+            // 如果没有找到用户消息，则标记为未分类，并添加'已整理'标签
+            conversation.tags = ['未分类', '已整理'];
+          }
+        } else {
+          // 如果对话已有标签但不是'未分类'，也添加'已整理'标签
+          if (!conversation.tags.includes('已整理')) {
+            conversation.tags.push('已整理');
+          }
+        }
+        
+        processedCount++;
+      }
+      
+      // 清除空对话（历史记录为空或只有默认欢迎消息的对话）
+      const initialMessage = '您好！我是小R AI助手，有什么可以帮助您的吗？';
+      const conversationsToDelete = [];
+      
+      for (let i = allConversations.length - 1; i >= 0; i--) {
+        const conversation = allConversations[i];
+        
+        // 检查是否为空对话：历史记录为空，或者只有一条初始消息
+        if (conversation.history.length === 0 || 
+            (conversation.history.length === 1 && 
+             conversation.history[0].content === initialMessage && 
+             conversation.history[0].role === false)) {
+          
+          // 如果是当前对话，不能删除
+          if (conversation.id === currentConversationId) {
+            console.log('跳过删除当前对话:', conversation.title);
+            // 但仍然标记为已整理
+            if (!conversation.tags.includes('已整理')) {
+              conversation.tags.push('已整理');
+            }
+            continue;
+          }
+          
+          conversationsToDelete.unshift(i); // 从后往前删除，避免索引问题
+          emptyCount++;
+        }
+      }
+      
+      // 删除空对话
+      conversationsToDelete.forEach(index => {
+        allConversations.splice(index, 1);
+      });
+      
+      // 保存所有更改
+      await saveAllConversations();
+      
+      // 更新对话列表显示
+      updateChatListDisplay();
+      
+      // 更新标签选项
+      updateTagOptions();
+      
+      // 隐藏进度条
+      if (organizeProgress) organizeProgress.style.display = 'none';
+      
+      showCustomAlert('整理完成', `对话整理完成！
+
+分类对话数: ${classifiedCount}
+删除空对话数: ${emptyCount}
+跳过已整理对话数: ${skippedCount}`);
+    } catch (error) {
+      console.error('整理对话时出错:', error);
+      
+      // 隐藏进度条
+      if (organizeProgress) organizeProgress.style.display = 'none';
+      
+      showCustomAlert('整理出错', '整理对话过程中出现错误，请查看控制台了解详情。');
+    }
+  });
+}
 
 // 生成对话标题
 async function generateConversationTitle(conversationId) {
@@ -2597,6 +3585,11 @@ stopVoiceButton.addEventListener('click', () => {
 // 初始化设置
 loadSettings();
 
+// 初始化标签选项
+setTimeout(() => {
+  updateTagOptions();
+}, 500); // 延迟半秒执行，确保页面元素已加载
+
 // 应用悬浮球设置 - 通知主进程更新悬浮球可见性
 setTimeout(() => {
   if (window.electronAPI && window.electronAPI.updateFloatingBallVisibility) {
@@ -2631,6 +3624,38 @@ function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
 }
 
+// 预设标签类型
+const PRESET_TAGS = [
+  '通用对话',
+  '问题解答',
+  '技术支持',
+  '学术讨论',
+  '编程帮助',
+  '创意写作',
+  '语言翻译',
+  '数学计算',
+  '生活咨询',
+  '职场建议',
+  '学习辅导',
+  '娱乐休闲',
+  '已整理'
+];
+
+// 获取最匹配的预设标签
+function getMatchingPresetTag(tagFromAI) {
+  if (!tagFromAI) return '未分类';
+  
+  // 简单的关键词匹配逻辑
+  for (const presetTag of PRESET_TAGS) {
+    if (tagFromAI.includes(presetTag) || presetTag.includes(tagFromAI)) {
+      return presetTag;
+    }
+  }
+  
+  // 如果都不匹配，返回默认标签
+  return '通用对话';
+}
+
 // 获取当前对话
 function getCurrentConversation() {
   if (!currentConversationId) {
@@ -2642,13 +3667,14 @@ function getCurrentConversation() {
 // 检查AI模型可用性
 async function checkAIModelAvailability() {
   const modelEndpoints = {
-    'deepseek': 'https://api.jkyai.top/API/depsek3.2.php',
-    'claude': 'https://api.jkyai.top/API/doubao.php',
-    'yuanbao': 'https://api.jkyai.top/API/yuanbao.php',
-    'qwen3': 'https://api.jkyai.top/API/qwen3.php',
-    'ling': 'https://api.jkyai.top/API/ling-1t.php',
-    'gemini': 'https://api.jkyai.top/API/gemini2.5/index.php',
-    'glm': 'https://api.52vmy.cn/api/chat/glm?msg=测试连接。提示词是：系统测试&type=text'
+    'deepseek': 'https://yunzhiapi.cn/API/depsek3.2.php',
+    'claude': 'https://yunzhiapi.cn/API/doubao.php',
+    'yuanbao': 'https://yunzhiapi.cn/API/yuanbao.php',
+    'qwen3': 'https://yunzhiapi.cn/API/qwen3.php',
+    'ling': 'https://yunzhiapi.cn/API/ling-1t.php',
+    'gemini': 'https://yunzhiapi.cn/API/gemini2.5/index.php',
+    'glm': 'https://api.52vmy.cn/api/chat/glm?msg=测试连接。提示词是：系统测试&type=text',
+    'xiaomi': 'https://yunzhiapi.cn/API/xiaomi/index.php'
   };
   
   const modelNames = {
@@ -2658,7 +3684,8 @@ async function checkAIModelAvailability() {
     'qwen3': 'Qwen3',
     'ling': '蚂蚁Ling2.0',
     'gemini': 'Gemini-2.5',
-    'glm': 'GLM'
+    'glm': 'GLM',
+    'xiaomi': '小米MiMo-V2'
   };
   
   // 获取当前选择的AI模型
@@ -2673,13 +3700,13 @@ async function checkAIModelAvailability() {
   const availability = {};
   for (const [model, endpoint] of Object.entries(modelEndpoints)) {
     try {
-      // 所有模型API都需要参数，使用GET方法发送带参数的测试请求
+      // 所有模型使用GET方法发送带参数的测试请求
       const url = new URL(endpoint);
       url.searchParams.append('question', '测试连接');
       url.searchParams.append('system', '测试系统提示');
       
-      const getResponse = await fetch(url.toString(), { method: 'GET' });
-      availability[model] = getResponse.ok;
+      const response = await fetch(url.toString(), { method: 'GET' });
+      availability[model] = response.ok;
     } catch (error) {
       console.warn(`${modelNames[model]} 模型连接失败:`, error);
       availability[model] = false;
@@ -2713,6 +3740,7 @@ function updateModelSelectDisplay(availability, currentModel) {
     { value: 'ling', text: '蚂蚁Ling2.0' },
     { value: 'gemini', text: 'Gemini-2.5' },
     { value: 'glm', text: 'GLM' },
+    { value: 'xiaomi', text: '小米MiMo-V2' },
     { value: 'custom', text: '自定义模型' },
     { value: 'ollama', text: 'Ollama本地模型' }
   ];
@@ -2762,6 +3790,7 @@ function updateModelSelectDisplay(availability, currentModel) {
             'ling': true,
             'gemini': true,
             'glm': true,
+            'xiaomi': true,
             'ollama': true
           };
           
@@ -2835,6 +3864,7 @@ function createNewConversation() {
   const newConversation = {
     id: newId,
     title: `对话 ${allConversations.length + 1}`,
+    tags: ['未分类'], // 默认标签
     history: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
@@ -2875,13 +3905,44 @@ function switchToConversation(conversationId) {
 }
 
 // 更新对话列表显示
-function updateChatListDisplay() {
+function updateChatListDisplay(filteredConversations = null) {
   const chatList = document.getElementById('chatList');
   if (!chatList) return;
   
   chatList.innerHTML = '';
   
-  allConversations.forEach(conversation => {
+  // 动态更新标签选择器中的选项
+  updateTagOptions();
+  
+  // 如果没有提供过滤的对话列表，则根据当前搜索和标签筛选条件来过滤
+  if (!filteredConversations) {
+    const searchTerm = document.getElementById('chatSearch')?.value.toLowerCase() || '';
+    const selectedTag = document.getElementById('chatTagFilter')?.value || '';
+    
+    let conversationsToDisplay = allConversations;
+    
+    // 如果有搜索词，按搜索过滤
+    if (searchTerm.trim() !== '') {
+      conversationsToDisplay = conversationsToDisplay.filter(conversation => 
+        conversation.title.toLowerCase().includes(searchTerm) ||
+        conversation.history.some(message => 
+          message.content.toLowerCase().includes(searchTerm)
+        )
+      );
+    }
+    
+    // 如果选择了特定标签，按标签过滤
+    if (selectedTag !== '') {
+      conversationsToDisplay = conversationsToDisplay.filter(conversation => 
+        (conversation.tags && conversation.tags.includes(selectedTag)) ||
+        (selectedTag === '未分类' && (!conversation.tags || conversation.tags.length === 0 || (conversation.tags.length > 0 && conversation.tags[0] === '未分类')))
+      );
+    }
+    
+    filteredConversations = conversationsToDisplay;
+  }
+  
+  filteredConversations.forEach(conversation => {
     const chatItem = document.createElement('div');
     chatItem.className = `chat-item ${conversation.id === currentConversationId ? 'active' : ''}`;
     chatItem.dataset.id = conversation.id;
@@ -2900,10 +3961,16 @@ function updateChatListDisplay() {
     const lastMessage = conversation.history.length > 0 ? conversation.history[conversation.history.length - 1] : null;
     const preview = lastMessage ? lastMessage.content.substring(0, 50) + (lastMessage.content.length > 50 ? '...' : '') : '暂无消息';
     
+    // 获取标签
+    const tag = conversation.tags && conversation.tags.length > 0 ? conversation.tags[0] : '未分类';
+    
     chatItem.innerHTML = `
       <div class="chat-item-content">
         <div class="chat-item-title">${title}</div>
-        <div class="chat-item-preview">${preview}</div>
+        <div class="chat-item-meta">
+          <span class="chat-item-tag">${tag}</span>
+          <div class="chat-item-preview">${preview}</div>
+        </div>
       </div>
       <div class="chat-item-actions">
         <button class="chat-item-action-btn rename-btn" title="重命名">✏️</button>
@@ -2935,23 +4002,77 @@ function updateChatListDisplay() {
   });
 }
 
+// 更新标签选择器中的选项
+function updateTagOptions() {
+  const chatTagFilter = document.getElementById('chatTagFilter');
+  if (!chatTagFilter) return;
+  
+  // 获取所有现有的标签
+  const allTags = new Set();
+  
+  // 添加预设标签
+  const presetTags = ['未分类', '通用对话', '问题解答', '技术支持', '学术讨论', '编程帮助', '创意写作', '语言翻译', '数学计算', '生活咨询', '职场建议', '学习辅导', '娱乐休闲'];
+  presetTags.forEach(tag => allTags.add(tag));
+  
+  // 添加现有对话中的标签
+  allConversations.forEach(conversation => {
+    if (conversation.tags && conversation.tags.length > 0) {
+      conversation.tags.forEach(tag => allTags.add(tag));
+    }
+  });
+  
+  // 先清空除了前两个选项外的所有选项（"所有标签"和"未分类"）
+  const firstTwoOptions = [];
+  for (let i = 0; i < Math.min(2, chatTagFilter.options.length); i++) {
+    firstTwoOptions.push({
+      value: chatTagFilter.options[i].value,
+      text: chatTagFilter.options[i].text
+    });
+  }
+  
+  chatTagFilter.innerHTML = '';
+  
+  // 重新添加前两个选项
+  firstTwoOptions.forEach(optionData => {
+    const option = document.createElement('option');
+    option.value = optionData.value;
+    option.text = optionData.text;
+    chatTagFilter.appendChild(option);
+  });
+  
+  // 添加所有唯一的标签选项
+  allTags.forEach(tag => {
+    if (tag !== '' && tag !== '未分类') { // 已经有了未分类选项
+      // 检查是否已经存在该选项
+      const exists = Array.from(chatTagFilter.options).some(option => option.value === tag);
+      if (!exists) {
+        const option = document.createElement('option');
+        option.value = tag;
+        option.textContent = tag;
+        chatTagFilter.appendChild(option);
+      }
+    }
+  });
+}
+
 // 重命名对话
 function renameConversation(conversationId) {
   const conversation = allConversations.find(conv => conv.id === conversationId);
   if (!conversation) return;
   
-  const newTitle = prompt('请输入新的对话标题:', conversation.title);
-  if (newTitle !== null && newTitle.trim() !== '') {
-    conversation.title = newTitle.trim();
-    
-    // 保存更改
-    saveAllConversations();
-    
-    // 更新对话列表显示
-    updateChatListDisplay();
-    
-    console.log('对话已重命名:', conversationId);
-  }
+  showCustomPrompt('重命名对话', '请输入新的对话标题:', conversation.title).then(newTitle => {
+    if (newTitle !== null && newTitle.trim() !== '') {
+      conversation.title = newTitle.trim();
+      
+      // 保存更改
+      saveAllConversations();
+      
+      // 更新对话列表显示
+      updateChatListDisplay();
+      
+      console.log('对话已重命名:', conversationId);
+    }
+  });
 }
 
 // 删除对话
@@ -3049,30 +4170,6 @@ function handleImageOCR() {
 
 // 更新技能按钮状态
 function updateSkillButtonStates() {
-  if (imageGenButton) {
-    if (activeSkillMode === 'imageGen') {
-      imageGenButton.classList.add('active-skill');
-    } else {
-      imageGenButton.classList.remove('active-skill');
-    }
-  }
-  
-  if (imageOcrButton) {
-    if (activeSkillMode === 'imageOcr') {
-      imageOcrButton.classList.add('active-skill');
-    } else {
-      imageOcrButton.classList.remove('active-skill');
-    }
-  }
-  
-  if (translationButton) {
-    if (activeSkillMode === 'translation') {
-      translationButton.classList.add('active-skill');
-    } else {
-      translationButton.classList.remove('active-skill');
-    }
-  }
-  
   // 同时更新技能菜单按钮的状态
   if (imageGenMenuButton) {
     if (activeSkillMode === 'imageGen') {
@@ -3111,6 +4208,14 @@ function updateSkillButtonStates() {
       weatherMenuButton.classList.add('active-skill');
     } else {
       weatherMenuButton.classList.remove('active-skill');
+    }
+  }
+  
+  if (newsInquiryMenuButton) {
+    if (activeSkillMode === 'newsInquiry') {
+      newsInquiryMenuButton.classList.add('active-skill');
+    } else {
+      newsInquiryMenuButton.classList.remove('active-skill');
     }
   }
 }
@@ -3409,7 +4514,7 @@ function extendModel() {
 
 // 检查更新功能
 function checkForUpdate() {
-  showCustomAlert('检查更新', '当前已是最新版本: v1.1.2\n如有更新会在此处显示。');
+  showCustomAlert('检查更新', '当前已是最新版本: v1.1.8，如有更新会在此处显示。');
   console.log('用户关闭了更新提示');
 }
 
@@ -3418,7 +4523,78 @@ function showAlert(title, message) {
   showCustomAlert(title, message);
 }
 
-
+// 显示自定义输入框
+function showCustomPrompt(title, message, defaultValue = '') {
+  return new Promise((resolve) => {
+    const promptBox = document.getElementById('customPrompt');
+    const promptTitle = document.getElementById('promptTitle');
+    const promptMessage = document.getElementById('promptMessage');
+    const promptInput = document.getElementById('promptInput');
+    const promptOk = document.getElementById('promptOk');
+    const promptCancel = document.getElementById('promptCancel');
+    const promptClose = document.getElementById('promptClose');
+    
+    if (promptBox && promptTitle && promptMessage && promptInput && promptOk && promptCancel && promptClose) {
+      promptTitle.textContent = title;
+      promptMessage.textContent = message;
+      promptInput.value = defaultValue;
+      
+      // 显示输入框
+      promptBox.style.display = 'flex';
+      
+      // 聚焦到输入框
+      setTimeout(() => {
+        promptInput.focus();
+        promptInput.select(); // 选中默认值，便于用户输入
+      }, 10);
+      
+      // 事件处理函数
+      const handleOk = () => {
+        cleanup();
+        resolve(promptInput.value);
+      };
+      
+      const handleCancel = () => {
+        cleanup();
+        resolve(null); // 用户取消时返回null
+      };
+      
+      const handleOutsideClick = (event) => {
+        if (event.target === promptBox) {
+          handleCancel();
+        }
+      };
+      
+      const handleKeyPress = (event) => {
+        if (event.key === 'Enter') {
+          handleOk();
+        } else if (event.key === 'Escape') {
+          handleCancel();
+        }
+      };
+      
+      const cleanup = () => {
+        promptOk.removeEventListener('click', handleOk);
+        promptCancel.removeEventListener('click', handleCancel);
+        promptClose.removeEventListener('click', handleCancel);
+        promptBox.removeEventListener('click', handleOutsideClick);
+        promptInput.removeEventListener('keydown', handleKeyPress);
+        promptBox.style.display = 'none';
+      };
+      
+      // 添加事件监听器
+      promptOk.addEventListener('click', handleOk);
+      promptCancel.addEventListener('click', handleCancel);
+      promptClose.addEventListener('click', handleCancel);
+      promptBox.addEventListener('click', handleOutsideClick);
+      promptInput.addEventListener('keydown', handleKeyPress);
+    } else {
+      // 如果没有自定义输入框元素，使用原生prompt
+      const result = prompt(`${message}\n\n(当前值: ${defaultValue})`);
+      resolve(result);
+    }
+  });
+}
 
 // 更新关闭时直接退出设置的UI
 function updateCloseToExitSetting(enabled) {
@@ -3427,18 +4603,144 @@ function updateCloseToExitSetting(enabled) {
   }
 }
 
+
+// 导入对话功能
+function importConversations() {
+  const fileInput = document.getElementById('importConversations');
+  
+  fileInput.onchange = function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const importedData = JSON.parse(e.target.result);
+        
+        if (importedData.version && importedData.conversations) {
+          // 导入对话，跳过已存在的对话（基于ID判断）
+          let importedCount = 0;
+          let skippedCount = 0;
+          
+          importedData.conversations.forEach(importedConv => {
+            // 检查是否已存在相同ID的对话
+            const existingIndex = allConversations.findIndex(conv => conv.id === importedConv.id);
+            
+            if (existingIndex === -1) {
+              // 如果不存在，则添加新对话
+              allConversations.push({...importedConv});
+              importedCount++;
+            } else {
+              // 如果存在，可以选择跳过或合并
+              skippedCount++;
+            }
+          });
+          
+          // 保存所有对话
+          saveAllConversations();
+          
+          // 更新对话列表显示
+          updateChatListDisplay();
+          
+          console.log(`导入完成: ${importedCount}个对话已导入, ${skippedCount}个对话已跳过`);
+          showNotification(`导入完成: ${importedCount}个对话已导入, ${skippedCount}个对话已跳过`);
+        } else {
+          showNotification('文件格式不正确');
+        }
+      } catch (error) {
+        console.error('导入对话失败:', error);
+        showNotification('导入对话失败');
+      }
+    };
+    reader.readAsText(file);
+  };
+  
+  // 触发文件选择
+  fileInput.click();
+}
+
+
+// 为导出和导入按钮添加事件监听器
+document.addEventListener('DOMContentLoaded', () => {
+  const exportBtn = document.getElementById('exportAllConversations');
+  const importBtn = document.getElementById('importConversationsBtn');
+  
+  if (exportBtn) {
+    exportBtn.addEventListener('click', exportAllConversations);
+  }
+  
+  if (importBtn) {
+    importBtn.addEventListener('click', importConversations);
+  }
+});
+
 // 为扩展模型按钮添加点击事件
 document.addEventListener('DOMContentLoaded', () => {
   const extendButton = document.getElementById('extendModelButton');
   const updateButton = document.getElementById('checkUpdateButton');
-  
+
   if (extendButton) {
     extendButton.addEventListener('click', extendModel);
   }
-  
+
   if (updateButton) {
     updateButton.addEventListener('click', checkForUpdate);
   }
 });
 
 
+// 导出所有对话功能
+function exportAllConversations() {
+  try {
+    // 准备导出数据
+    const exportData = {
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      conversations: allConversations.map(conv => ({
+        id: conv.id,
+        title: conv.title,
+        createdAt: conv.createdAt,
+        updatedAt: conv.updatedAt,
+        history: conv.history
+      }))
+    };
+    
+    // 将数据转换为JSON字符串
+    const jsonData = JSON.stringify(exportData, null, 2);
+    
+    // 创建Blob对象
+    const blob = new Blob([jsonData], { type: 'application/json' });
+    
+    // 创建下载链接
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `小R助手对话记录_${new Date().toLocaleDateString().replace(/[\\/]/g, '-').replace(/:/g, '-')}.XiaoRDialogue`;
+    
+    // 触发下载
+    document.body.appendChild(a);
+    a.click();
+    
+    // 清理
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    console.log('对话记录导出成功');
+    showNotification('对话记录导出成功');
+  } catch (error) {
+    console.error('导出对话记录失败:', error);
+    showNotification('导出对话记录失败');
+  }
+}
+
+// 定义showAlert函数
+function showAlert(title, message) {
+  showCustomAlert(title, message);
+}
+
+// 更新关闭时直接退出设置的UI
+function updateCloseToExitSetting(enabled) {
+  if (closeToExitToggle) {
+    closeToExitToggle.checked = enabled;
+  }
+}

@@ -197,18 +197,88 @@ header {
   background-color: #4a90e2;
   color: white;
   padding: 15px 20px;
-  text-align: center;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 header h1 {
   font-size: clamp(1.2rem, 4vw, 2rem);
-  margin-bottom: 5px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+/* Header顶部容器 - 包含标题和右上角按钮 */
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+/* Header次级按钮容器 - 新对话和对话列表按钮 */
+.header-secondary-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+/* 发送按钮 */
+#sendButton {
+  padding: 35px 20px;
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: clamp(0.9rem, 2vw, 1rem);
+  transition: background-color 0.3s;
+  align-self: flex-end;
+  min-width: 80px;
+  width: fit-content;
+  white-space: nowrap;
 }
 
 header p {
   font-size: clamp(0.8rem, 2vw, 1rem);
   opacity: 0.9;
+}
+
+/* 设置按钮 */
+.settings-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  transition: background-color 0.3s;
+}
+
+.settings-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* 关于按钮 */
+.about-btn {
+  position: absolute;
+  top: 15px;
+  right: 55px;
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  transition: background-color 0.3s;
+}
+
+.about-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 main {
@@ -276,6 +346,66 @@ body.newyear-theme .message.ai {
 body.newyear-theme .message.user {
   background: #ff6b6b;
   color: white;
+}
+
+/* AI输出容器样式 */
+.ai-output-container {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  vertical-align: top;
+  line-height: 1.4;
+  position: relative;
+  width: 100%;
+}
+
+.ai-content {
+  flex: 1;
+  word-wrap: break-word;
+}
+
+.button-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 5px;
+  vertical-align: top;
+  flex-shrink: 0;
+  margin-top: 0;
+  margin-left: 5px;
+}
+
+
+
+.copy-btn-container {
+  display: inline-block;
+  margin-left: 2px;
+}
+
+.copy-all-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 4px;
+  font-size: 1.1rem;
+  opacity: 0.6;
+  transition: opacity 0.3s, background-color 0.3s;
+}
+
+.copy-all-btn:hover {
+  opacity: 1;
+  background-color: #e0e0e0;
+}
+
+body.dark-theme .copy-all-btn:hover {
+  background-color: #555;
+}
+
+.copy-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Markdown 样式 */
@@ -382,21 +512,6 @@ body.newyear-theme .message.user {
   font-size: 1rem;
   min-height: 50px;
   max-height: 150px;
-}
-
-#sendButton {
-  padding: 33px 20px;
-  background-color: #4a90e2;
-  color: white;
-  border: none;
-  border-radius: 20px;
-  cursor: pointer;
-  font-size: clamp(0.9rem, 2vw, 1rem);
-  transition: background-color 0.3s;
-  align-self: flex-end;
-  min-width: 80px;
-  width: fit-content;
-  white-space: nowrap;
 }
 
 #sendButton:hover {
@@ -514,6 +629,71 @@ body.newyear-theme .message.user {
   background-color: rgba(255, 255, 255, 0.2);
 }
 
+/* 关于按钮 */
+.about-btn {
+  position: absolute;
+  top: 15px;
+  right: 55px;
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  transition: background-color 0.3s;
+}
+
+.about-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* 通用图标按钮样式 */
+.icon-button {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  transition: background-color 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+}
+
+.icon-button:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* 深色主题下的图标按钮 */
+body.dark-theme .icon-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* 设置按钮样式 */
+#settingsButton {
+  color: #fff;
+}
+
+/* 关于按钮样式 */
+#aboutButton {
+  color: #fff;
+}
+
+/* 技能按钮样式 */
+#skillButton {
+  color: #fff;
+}
+
+/* 发送按钮样式 */
+#sendButton {
+  color: #fff;
+}
+
+
+
 /* 设置面板 */
 .settings-panel {
   position: fixed;
@@ -540,6 +720,11 @@ body.newyear-theme .message.user {
   max-width: 400px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   position: relative; /* 为关闭按钮定位 */
+}
+
+.send-btn {
+  align-items: center;
+  justify-content: center;
 }
 
 .close-settings-btn {
@@ -1220,6 +1405,171 @@ body.dark-theme .voice-input-alert {
   border-radius: 10px 10px 0 0; /* 顶部圆角 */
 }
 
+.chat-search-container {
+  padding: 10px 20px;
+  border-bottom: 1px solid #ddd;
+}
+
+.chat-search {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.chat-search:focus {
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+.chat-export-container {
+  padding: 10px 20px;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  justify-content: center;
+}
+
+.chat-export-btn {
+  padding: 8px 16px;
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  width: 100%;
+}
+
+.chat-export-btn:hover {
+  background-color: #357ae8;
+}
+
+/* 深色主题下的搜索框样式 */
+body.dark-theme .chat-search {
+  background-color: #444;
+  color: #e0e0e0;
+  border-color: #666;
+}
+
+body.dark-theme .chat-search:focus {
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+/* 深色主题下的导出按钮 */
+body.dark-theme .chat-export-btn {
+  background-color: #4a90e2;
+  color: white;
+}
+
+body.dark-theme .chat-export-btn:hover {
+  background-color: #357ae8;
+}
+
+.chat-tags-container {
+  padding: 10px 20px;
+  border-bottom: 1px solid #ddd;
+}
+
+.chat-tag-filter {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px 4px 0 0;
+  font-size: 0.9rem;
+  outline: none;
+  background-color: #fff;
+  color: #333;
+}
+
+.organize-btn {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  font-size: 0.9rem;
+  background-color: #f5f5f5;
+  color: #333;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.organize-btn:hover {
+  background-color: #e0e0e0;
+}
+
+body.dark-theme .organize-btn {
+  background-color: #555;
+  color: #e0e0e0;
+  border-color: #666;
+}
+
+body.dark-theme .organize-btn:hover {
+  background-color: #666;
+}
+
+/* 整理对话进度条样式 */
+.organize-progress {
+  margin: 10px 20px 0;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 20px;
+  background-color: #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background-color: #4a90e2;
+  transition: width 0.3s ease;
+  border-radius: 10px;
+}
+
+.progress-text {
+  text-align: center;
+  margin-top: 5px;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+body.dark-theme .organize-progress {
+  background-color: #444;
+  border-color: #666;
+}
+
+body.dark-theme .progress-text {
+  color: #e0e0e0;
+}
+
+.chat-tag-filter:focus {
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+/* 深色主题下的标签筛选样式 */
+body.dark-theme .chat-tag-filter {
+  background-color: #444;
+  color: #e0e0e0;
+  border-color: #666;
+}
+
+body.dark-theme .chat-tag-filter:focus {
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
 .close-chat-list-btn {
   background: none;
   border: none;
@@ -1310,12 +1660,33 @@ body.dark-theme .chat-item-action-btn:hover {
   font-size: 0.9rem;
 }
 
+.chat-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chat-item-tag {
+  background-color: #e0e0e0;
+  color: #333;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 0.8em;
+  white-space: nowrap;
+}
+
+body.dark-theme .chat-item-tag {
+  background-color: #555;
+  color: #e0e0e0;
+}
+
 .chat-item-preview {
   font-size: 0.8rem;
   color: #666;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
 }
 
 /* 深色主题下的对话列表样式 */
@@ -2006,4 +2377,153 @@ body.dark-theme .progress-fill {
 
 body.dark-theme .progress-text {
   color: #e0e0e0;
+}
+
+/* 代码块包装器样式 */
+.code-block-wrapper {
+  position: relative;
+  margin: 10px 0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* 深色主题下的代码块包装器 */
+body.dark-theme .code-block-wrapper {
+  border: 1px solid #555;
+}
+
+/* 复制按钮样式 */
+.copy-btn {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  padding: 3px 8px;
+  background: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  z-index: 10;
+  transition: background-color 0.3s;
+}
+
+.copy-btn:hover {
+  background-color: #e0e0e0;
+}
+
+/* 深色主题下的复制按钮 */
+body.dark-theme .copy-btn {
+  background: #444;
+  border: 1px solid #666;
+  color: #e0e0e0;
+}
+
+body.dark-theme .copy-btn:hover {
+  background-color: #555;
+}
+
+/* 代码块样式 */
+pre.code-block {
+  margin: 0;
+  padding: 10px;
+  overflow-x: auto;
+  background-color: #f8f8f8;
+  border-radius: 0;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+}
+
+/* 深色主题下的代码块 */
+body.dark-theme pre.code-block {
+  background-color: #2d2d2d;
+  color: #f8f8f8;
+}
+
+/* 代码样式 */
+code {
+  font-family: 'Courier New', Consolas, monospace;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* 消息编辑界面样式 */
+.message-edit-interface {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.message-edit-textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  resize: vertical;
+  min-height: 80px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+body.dark-theme .message-edit-textarea {
+  background-color: #444;
+  color: #e0e0e0;
+  border-color: #666;
+}
+
+.message-edit-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.edit-save-btn, .edit-cancel-btn {
+  padding: 6px 12px;
+  border: 1px solid;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.edit-save-btn {
+  background-color: #4a90e2;
+  color: white;
+  border-color: #4a90e2;
+}
+
+.edit-save-btn:hover {
+  background-color: #357ae8;
+}
+
+.edit-cancel-btn {
+  background-color: #f0f0f0;
+  color: #333;
+  border-color: #ccc;
+}
+
+.edit-cancel-btn:hover {
+  background-color: #e0e0e0;
+}
+
+/* 深色主题下的编辑按钮样式 */
+body.dark-theme .edit-save-btn {
+  background-color: #4a90e2;
+  color: white;
+  border-color: #4a90e2;
+}
+
+body.dark-theme .edit-save-btn:hover {
+  background-color: #357ae8;
+}
+
+body.dark-theme .edit-cancel-btn {
+  background-color: #555;
+  color: #e0e0e0;
+  border-color: #666;
+}
+
+body.dark-theme .edit-cancel-btn:hover {
+  background-color: #666;
 }
