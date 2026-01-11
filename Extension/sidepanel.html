@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小R AI助手</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+    <style>
+        /* 侧边栏专用样式 */
+        body {
+            margin: 0;
+            padding: 0;
+            width: 390px;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            width: 390px;
+            height: 100vh;
+            background-color: #f5f5f5;
+            overflow: hidden;
+        }
+
+        /* 头部样式调整 */
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 100;
+            flex-shrink: 0;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.2em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .settings-btn, .about-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+        }
+
+        .settings-btn:hover, .about-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 主内容区域 */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: 10px;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* 聊天历史区域 */
+        .chat-history {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 5px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 0;
+        }
+
+        .welcome-message {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* 消息样式 */
+        .message {
+            max-width: 85%;
+            padding: 10px 15px;
+            border-radius: 18px;
+            margin-bottom: 8px;
+            word-wrap: break-word;
+            position: relative;
+            animation: fadeIn 0.3s ease-out;
+            font-size: 16px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user {
+            background-color: #dcf8c6;
+            align-self: flex-end;
+            border-bottom-right-radius: 5px;
+        }
+
+        .ai {
+            background-color: white;
+            align-self: flex-start;
+            border-bottom-left-radius: 5px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        /* 输入区域 */
+        .input-area {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-top: 10px;
+            background-color: transparent;
+            border-top: 1px solid #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body.dark-theme .input-area {
+            border-top: 1px solid #555;
+        }
+        
+        /* 深色主题 */
+        body.dark-theme {
+            background-color: #2c2c2c;
+            color: #ffffff;
+        }
+
+        body.dark-theme .container {
+            background-color: #2c2c2c;
+        }
+
+        body.dark-theme .chat-history {
+            background-color: #2c2c2c;
+        }
+
+        body.dark-theme .message.user {
+            background-color: #4a4a4a;
+            color: white;
+        }
+
+        body.dark-theme .message.ai {
+            background-color: #3a3a3a;
+            color: white;
+        }
+
+        body.dark-theme .welcome-message {
+            color: #cccccc;
+        }
+        
+        body.dark-theme .skill-menu {
+            background: #3a3a3a;
+            color: white;
+        }
+        
+        body.dark-theme .skill-menu-btn {
+            background: #4a4a4a;
+            border: 1px solid #555;
+            color: white;
+        }
+        
+        body.dark-theme .skill-menu-btn:hover {
+            background: #555;
+        }
+        
+        body.dark-theme .skill-menu {
+            background: #3a3a3a;
+            color: white;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        
+        body.dark-theme .setting-item input, body.dark-theme .setting-item select, body.dark-theme .setting-item textarea {
+            background-color: #4a4a4a;
+            color: white;
+            border: 1px solid #555;
+        }
+        
+        body.dark-theme .prompt-input {
+            background-color: #4a4a4a;
+            color: white;
+            border: 1px solid #555;
+        }
+        
+        body.dark-theme .settings-panel {
+            background: #333;
+            color: white;
+        }
+        
+        body.dark-theme .settings-tabs {
+            border-bottom: 1px solid #555;
+        }
+        
+        body.dark-theme .tab-button {
+            color: #ccc;
+        }
+        
+        body.dark-theme .tab-button.active {
+            color: #667eea;
+        }
+        
+        body.dark-theme .close-settings-btn {
+            color: #ccc;
+        }
+        
+        body.dark-theme .close-settings-btn:hover {
+            color: white;
+        }
+        
+        body.dark-theme .message-edit-textarea {
+            background-color: #4a4a4a;
+            color: white;
+            border: 1px solid #555;
+        }
+        
+        body.dark-theme .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+        }
+        
+        body.dark-theme .copy-btn, body.dark-theme .copy-all-btn {
+            background: #555;
+            border: 1px solid #666;
+            color: white;
+        }
+        
+        body.dark-theme .copy-btn:hover, body.dark-theme .copy-all-btn:hover {
+            background: #666;
+        }
+        
+        body.dark-theme ::-webkit-scrollbar-track {
+            background: #333;
+        }
+        
+        body.dark-theme ::-webkit-scrollbar-thumb {
+            background: #555;
+        }
+        
+        body.dark-theme ::-webkit-scrollbar-thumb:hover {
+            background: #666;
+        }
+        
+        body.dark-theme #userInput::-webkit-scrollbar-track {
+            background: #333;
+        }
+        
+        body.dark-theme #userInput::-webkit-scrollbar-thumb {
+            background: #555;
+        }
+        
+        body.dark-theme #userInput::-webkit-scrollbar-thumb:hover {
+            background: #666;
+        }
+
+        .input-with-buttons {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        #userInput {
+            width: 100%;
+            padding: 12px 50px 30px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 20px;
+            resize: none;
+            min-height: 80px;
+            max-height: 120px;
+            height: 80px;
+            font-size: 14px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            box-sizing: border-box;
+            line-height: 1.4;
+            background-color: #ffffff;
+            color: #333333;
+        }
+        
+        body.dark-theme #userInput {
+            background-color: #4a4a4a;
+            color: white;
+            border: 2px solid #555;
+        }
+        
+        body.dark-theme .inside-send-btn {
+            background: linear-gradient(135deg, #5a6dca 0%, #665a82 100%);
+        }
+        
+        body.dark-theme .inside-send-btn:hover {
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.5);
+        }
+
+        #userInput:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        /* 输入框滚动条样式 */
+        #userInput::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        #userInput::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        #userInput::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        
+        #userInput::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+
+
+        /* 技能按钮 */
+        .input-bottom-left {
+            position: absolute;
+            left: 12px;
+            bottom: 12px;
+        }
+        
+        .skill-btn-main {
+            background: #f0f0f0;
+            border: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        body.dark-theme .skill-btn-main {
+            background: #555;
+            color: white;
+        }
+
+        /* 按钮组 */
+        .button-group {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+            position: absolute;
+            right: 15px;
+            bottom: 10px;
+        }
+
+        .send-btn:hover {
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .stop-btn {
+            background: #ff6b6b;
+        }
+
+        /* 设置面板样式 */
+        .settings-panel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 90%;
+            max-width: 400px;
+            height: 100vh;
+            background: white;
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+            overflow-y: auto;
+        }
+
+        .settings-panel.active {
+            transform: translateX(0);
+        }
+
+        .settings-content {
+            padding: 20px;
+            position: relative;
+        }
+
+        .close-settings-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 24px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: #999;
+        }
+
+        .close-settings-btn:hover {
+            color: #333;
+        }
+
+        /* 设置标签页 */
+        .settings-tabs {
+            display: flex;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 20px;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            color: #666;
+        }
+
+        .tab-button.active {
+            border-bottom: 2px solid #667eea;
+            color: #667eea;
+        }
+
+        .settings-tab-content {
+            display: none;
+        }
+
+        .settings-tab-content.active {
+            display: block;
+        }
+
+        .setting-item {
+            margin-bottom: 20px;
+        }
+
+        .setting-item label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .setting-item input, .setting-item select, .setting-item textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .custom-model-help {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .save-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        /* 技能菜单 */
+        .skill-menu {
+            position: absolute;
+            bottom: 80px;
+            left: 10px;
+            background: white;
+            border-radius: 15px;
+            padding: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 100;
+            flex-direction: column;
+            gap: 8px;
+            max-width: 200px;
+        }
+
+        .skill-menu-btn {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 8px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            width: 100%;
+            text-align: left;
+        }
+
+        .skill-menu-btn:hover {
+            background: #e9ecef;
+        }
+
+        /* 通知提示 */
+        .voice-input-alert {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            z-index: 10000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            max-width: 300px;
+            word-wrap: break-word;
+        }
+
+        /* 停止语音按钮 */
+        .stop-voice-btn {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            z-index: 1000;
+            font-size: 14px;
+        }
+
+        /* 自定义对话框样式 */
+        .custom-alert, .custom-confirm, .custom-prompt {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .alert-content, .confirm-content, .prompt-content {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            min-width: 300px;
+            max-width: 90%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .alert-header, .confirm-header, .prompt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .alert-title, .confirm-title, .prompt-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .alert-close, .confirm-close, .prompt-close {
+            cursor: pointer;
+            font-size: 24px;
+            color: #999;
+        }
+
+        .alert-body, .confirm-body, .prompt-body {
+            margin-bottom: 20px;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .prompt-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            margin-top: 10px;
+            box-sizing: border-box;
+        }
+
+        .alert-btn, .confirm-btn, .prompt-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .alert-btn, .confirm-btn.ok-btn, .prompt-btn.ok-btn {
+            background: #007bff;
+            color: white;
+        }
+
+        .confirm-btn.cancel-btn, .prompt-btn.cancel-btn {
+            background: #6c757d;
+            color: white;
+        }
+
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        /* 代码块样式 */
+        .code-block-wrapper {
+            position: relative;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        pre.code-block {
+            margin: 0;
+            padding: 15px;
+            overflow-x: auto;
+            background: #2d2d2d;
+            color: #f8f8f2;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .copy-btn, .copy-all-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            padding: 3px 8px;
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            z-index: 10;
+        }
+
+        .copy-all-btn {
+            position: relative;
+            top: auto;
+            right: auto;
+            margin-top: 5px;
+        }
+
+        .copy-btn-container {
+            display: inline-block;
+        }
+
+        /* AI输出容器 */
+        .ai-output-container {
+            position: relative;
+        }
+
+        .button-row {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 5px;
+        }
+
+        /* 编辑界面 */
+        .message-edit-interface {
+            width: 100%;
+        }
+
+        .message-edit-textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            resize: vertical;
+            font-family: inherit;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .message-edit-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .edit-save-btn, .edit-cancel-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .edit-save-btn {
+            background: #28a745;
+            color: white;
+        }
+
+        .edit-cancel-btn {
+            background: #6c757d;
+            color: white;
+        }
+
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <h1>小R AI助手</h1>
+                <div class="header-buttons">
+                    <button id="settingsButton" class="settings-btn">⚙️</button>
+                </div>
+            </div>
+        </header>
+        
+        <!-- 设置面板 -->
+        <div id="settingsPanel" class="settings-panel">
+            <div class="settings-content">
+                <span id="closeSettings" class="close-settings-btn">&times;</span>
+                
+                <!-- 设置标签页 -->
+                <div class="settings-tabs">
+                    <button class="tab-button active" data-tab="ai-settings">AI和应用设置</button>
+                </div>
+                
+                <!-- AI和应用设置栏目 -->
+                <div id="ai-settings" class="settings-tab-content active">
+                    <div class="setting-item">
+                        <label for="aiModelSelect">AI模型:</label>
+                        <select id="aiModelSelect">
+                            <option value="deepseek">DeepseekV3.2</option>
+                            <option value="claude">豆包</option>
+                            <option value="yuanbao">腾讯元宝</option>
+                            <option value="qwen3">Qwen3</option>
+                            <option value="ling">蚂蚁Ling2.0</option>
+                            <option value="gemini">Gemini-2.5</option>
+                            <option value="glm">GLM</option>
+                            <option value="custom">自定义模型</option>
+                            <option value="ollama">Ollama本地模型</option>
+                            <option value="xiaomi">小米MiMo-V2</option>
+                        </select>
+                    </div>
+                    
+                    <div id="customModelSettings" class="setting-item" style="display: none;">
+                        <label for="customModelUrl">自定义模型API接口:</label>
+                        <input type="text" id="customModelUrl" placeholder="https://www.ai.com/Deepseek.php?q=%提问内容%&s=%联想词%">
+                        <div class="custom-model-help">
+                            参数说明：<br>
+                            %提问内容% - 替换为用户的问题<br>
+                            %联想词% - 替换为system提示词
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label for="contextSelect">上下文对话数量:</label>
+                        <select id="contextSelect">
+                            <option value="0">不启用上下文</option>
+                            <option value="2">1轮对话（用户+AI）</option>
+                            <option value="4" selected>2轮对话（用户+AI）</option>
+                            <option value="6">3轮对话（用户+AI）</option>
+                            <option value="8">4轮对话（用户+AI）</option>
+                            <option value="10">5轮对话（用户+AI）</option>
+                            <option value="all">完整历史</option>
+                        </select>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="voiceToggle" checked> 启用AI语音回复
+                        </label>
+                    </div>
+                    
+                    <div id="voiceTypeSetting" class="setting-item" style="display: none;">
+                        <label for="voiceTypeSelect">音色选择:</label>
+                        <select id="voiceTypeSelect">
+                            <option value="">默认女声</option>
+                            <option value="zh-HK-HiuGaaiNeural">粤语女声 - 粤爱</option>
+                            <option value="zh-HK-HiuMaanNeural">粤语女声 - 粤曼</option>
+                            <option value="zh-HK-WanLungNeural">粤语男声 - 粤龙</option>
+                            <option value="zh-CN-XiaoxiaoNeural">普通话女声 - 晓晓</option>
+                            <option value="zh-CN-XiaoyiNeural">普通话女声 - 晓伊</option>
+                            <option value="zh-CN-YunjianNeural">普通话男声 - 云健</option>
+                            <option value="zh-CN-YunxiNeural">普通话男声 - 云希</option>
+                            <option value="zh-CN-YunxiaNeural">普通话男声 - 云夏</option>
+                            <option value="zh-CN-YunyangNeural">普通话男声 - 云扬</option>
+                            <option value="zh-CN-liaoning-XiaobeiNeural">东北女声 - 晓北</option>
+                            <option value="zh-TW-HsiaoChenNeural">台语女声 - 晓臻</option>
+                            <option value="zh-TW-YunJheNeural">台语男声 - 云哲</option>
+                            <option value="zh-TW-HsiaoYuNeural">台语女声 - 晓雨</option>
+                            <option value="zh-CN-shaanxi-XiaoniNeural">陕西女声 - 晓妮</option>
+                        </select>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label for="themeSelect">主题:</label>
+                        <select id="themeSelect">
+                            <option value="auto">跟随系统</option>
+                            <option value="light">浅色主题</option>
+                            <option value="dark">深色主题</option>
+                        </select>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="animationOutputToggle"> 启用动画输出（逐字显示）
+                        </label>
+                    </div>
+                </div>
+                
+
+                
+                <div class="settings-buttons">
+                    <button id="saveSettings" class="save-btn">保存设置</button>
+                </div>
+            </div>
+        </div>
+        
+        <main>
+            <div class="chat-container">
+                <div class="chat-history" id="chatHistory">
+                    <!-- 聊天记录将在这里显示 -->
+                    <div class="welcome-message">
+                        <p>欢迎使用小R AI助手！<br>我是您的智能AI伙伴，随时为您服务。</p>
+                    </div>
+                </div>
+                
+                <div class="input-area">
+                    <div class="input-with-buttons">
+                        <textarea 
+                            id="userInput" 
+                            placeholder="和小R聊天..." 
+                            rows="1"
+                        ></textarea>
+                        <button id="sendButton" class="send-btn"><i class="fa-solid fa-paper-plane fa-rotate-270 fa-lg" style="color: #ffffff;"></i></button>
+
+                        <div class="input-bottom-left">
+                            <button id="skillButton" class="skill-btn-main" title="技能">💡</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+
+    
+    <!-- 技能弹出菜单 -->
+    <div id="skillMenu" class="skill-menu" style="display: none;">
+        <button id="imageGenMenuButton" class="skill-menu-btn" title="AI图片生成">🖼️ 图片生成</button>
+        <button id="imageOcrMenuButton" class="skill-menu-btn" title="图片OCR识别">🔍 OCR识别</button>
+        <button id="translationMenuButton" class="skill-menu-btn" title="翻译助手">🌐 翻译</button>
+        <button id="codeAssistantMenuButton" class="skill-menu-btn" title="AI编程助手">💻 编程</button>
+        <button id="weatherMenuButton" class="skill-menu-btn" title="天气查询">🌤️ 天气查询</button>
+        <button id="newsInquiryMenuButton" class="skill-menu-btn" title="新闻查询">📰 新闻查询</button>
+    </div>
+    
+    <!-- 自定义提示框 -->
+    <div id="customAlert" class="custom-alert" style="display: none;">
+        <div class="alert-content">
+            <div class="alert-header">
+                <span class="alert-title" id="alertTitle">提示</span>
+                <span class="alert-close" id="alertClose">&times;</span>
+            </div>
+            <div class="alert-body">
+                <p id="alertMessage"></p>
+            </div>
+            <div class="alert-footer">
+                <button id="alertConfirm" class="alert-btn">确定</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 自定义确认框 -->
+    <div id="customConfirm" class="custom-confirm" style="display: none;">
+        <div class="confirm-content">
+            <div class="confirm-header">
+                <span class="confirm-title" id="confirmTitle">确认</span>
+                <span class="confirm-close" id="confirmClose">&times;</span>
+            </div>
+            <div class="confirm-body">
+                <p id="confirmMessage"></p>
+            </div>
+            <div class="confirm-footer">
+                <button id="confirmCancel" class="confirm-btn cancel-btn">取消</button>
+                <button id="confirmOk" class="confirm-btn ok-btn">确定</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 自定义输入框 -->
+    <div id="customPrompt" class="custom-prompt" style="display: none;">
+        <div class="prompt-content">
+            <div class="prompt-header">
+                <span class="prompt-title" id="promptTitle">输入</span>
+                <span class="prompt-close" id="promptClose">&times;</span>
+            </div>
+            <div class="prompt-body">
+                <p id="promptMessage"></p>
+                <input type="text" id="promptInput" class="prompt-input">
+            </div>
+            <div class="prompt-footer">
+                <button id="promptCancel" class="prompt-btn cancel-btn">取消</button>
+                <button id="promptOk" class="prompt-btn ok-btn">确定</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="sidepanel.js"></script>
+</body>
+</html>
