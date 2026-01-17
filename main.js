@@ -1,14 +1,41 @@
-const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, dialog, Notification } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { spawn } = require('child_process');
+
+// 禁用 Chromium 的 autofill 功能以避免错误日志
+app.commandLine.appendSwitch('disable-autofill');
+app.commandLine.appendSwitch('disable-features', 'AutofillAssistant, AutofillCreditCard, AutofillPassword');
+
+// 设置应用名称以确保通知显示正确的标题
+app.setName('小R助手');
 
 // 解析命令行参数
 const args = process.argv.slice(2);
 
 // 检查是否传入了 --no-single-instance-lock 参数
 const noSingleInstanceLock = args.includes('--no-single-instance-lock');
+
+// 检查是否以开发模式启动
+const isDevMode = args.includes('--dev') || args.includes('--debug') || process.env.NODE_ENV === 'development';
+
+// 开发模式下的增强日志函数
+function debugLog(message, ...optionalParams) {
+  if (isDevMode) {
+    const timestamp = new Date().toISOString();
+    console.log(`[DEBUG ${timestamp}] ${message}`, ...optionalParams);
+  }
+}
+
+// 如果是开发模式，输出更多信息
+if (isDevMode) {
+  debugLog('======= 开发模式启动 ========');
+  debugLog('命令行参数:', args);
+  debugLog('开发模式已启用，将输出日志');
+  debugLog('============================');
+  debugLog('开发模式日志功能已启用');
+}
 
 // 处理 Squirrel.Windows 事件（如果存在）
 if (require('electron-squirrel-startup')) {
@@ -17,19 +44,25 @@ if (require('electron-squirrel-startup')) {
 }
 
 // 检查是否已经有一个实例在运行
-console.log('正在检查是否有其他实例在运行...');
+debugLog('正在检查是否有其他实例在运行...');
 let gotTheLock = true; // 默认允许启动
 
 // 仅在没有 --no-single-instance-lock 参数时才请求单实例锁
 if (!noSingleInstanceLock) {
-  gotTheLock = app.requestSingleInstanceLock();
-  console.log('单实例锁检查结果：', gotTheLock);
-  console.log('单实例锁已被禁用参数覆盖：', noSingleInstanceLock);
+  try {
+    gotTheLock = app.requestSingleInstanceLock();
+  } catch (error) {
+    // 如果单实例锁请求失败（例如由于锁文件被占用），记录错误但仍然允许启动
+    console.warn('单实例锁请求失败，可能是由于之前的进程未完全退出:', error.message);
+    gotTheLock = true; // 允许当前实例继续启动
+  }
+  debugLog('单实例锁检查结果：', gotTheLock);
+  debugLog('单实例锁已被禁用参数覆盖：', noSingleInstanceLock);
 }
 
 if (!gotTheLock) {
   app.whenReady().then(() => {
-    console.log('向已有实例发送焦点切换信号');
+    debugLog('向已有实例发送焦点切换信号');
     // 发送second-instance事件，让已有实例处理
     app.quit();
   });
@@ -38,22 +71,22 @@ if (!gotTheLock) {
 }
 
 app.on('second-instance', (event, commandLine, workingDirectory) => {
-  console.log('检测到第二个实例启动，正在将焦点切换到主窗口');
+  debugLog('检测到第二个实例启动，正在将焦点切换到主窗口');
   // 当运行第二个实例时，如果主窗口存在则将其聚焦
   if (mainWindow) {
-    console.log('主窗口存在，正在恢复和聚焦');
+    debugLog('主窗口存在，正在恢复和聚焦');
     if (mainWindow.isMinimized()) {
-      console.log('主窗口已最小化，正在恢复');
+      debugLog('主窗口已最小化，正在恢复');
       mainWindow.restore();
     }
     mainWindow.show();
     mainWindow.focus();
-    console.log('主窗口已聚焦');
+    debugLog('主窗口已聚焦');
     
     // 向渲染进程发送消息，通知窗口需要聚焦
     mainWindow.webContents.send('bring-to-front');
   } else {
-    console.log('主窗口不存在');
+    debugLog('主窗口不存在');
   }
 });
 
@@ -117,7 +150,14 @@ function loadAllConversations() {
 
 // 当 Electron 完成初始化并准备创建浏览器窗口时调用此方法
 app.whenReady().then(() => {
-  console.log('应用已就绪，开始创建窗口');
+  if (isDevMode) {
+      debugLog('应用已就绪，开始创建窗口');
+      debugLog('当前工作目录:', process.cwd());
+      debugLog('用户数据路径:', app.getPath('userData'));
+      debugLog('应用版本:', app.getVersion());
+    } else {
+      debugLog('应用已就绪，开始创建窗口');
+    }
   createWindow();
   
   
@@ -134,7 +174,7 @@ app.whenReady().then(() => {
   
   try {
   } catch (error) {
-    console.log('读取设置失败，使用默认值:', error.message);
+    debugLog('读取设置失败，使用默认值:', error.message);
   }
   
   // 初始时创建悬浮球，然后根据设置更新其可见性
@@ -150,7 +190,7 @@ app.whenReady().then(() => {
   });
   
   app.on('activate', () => {
-    console.log('应用激活事件触发');
+    debugLog('应用激活事件触发');
     // 在 macOS 上，当单击 dock 图标并且没有其他窗口打开时，通常会在应用程序中重新创建一个窗口。
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
@@ -239,7 +279,8 @@ function createFloatingBall() {
     skipTaskbar: true,  // 不在任务栏显示
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false
+      contextIsolation: false,
+      disableBlinkFeatures: 'Autofill'
     },
     icon: path.join(__dirname, 'RuanmAi.png')
   });
@@ -303,7 +344,8 @@ function createChatWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: true,
-      contextIsolation: false
+      contextIsolation: false,
+      disableBlinkFeatures: 'Autofill'
     }
   });
   
@@ -327,7 +369,8 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
-      contextIsolation: true
+      contextIsolation: true,
+      disableBlinkFeatures: 'Autofill'
     },
     // 移除原生菜单栏
     autoHideMenuBar: true,
@@ -364,7 +407,7 @@ function createWindow() {
       await mainWindow.webContents.executeJavaScript(
         `if(window.updateCloseToExitSetting) window.updateCloseToExitSetting(${closeToExit}); `
       );
-      console.log('已将关闭设置同步到渲染进程:', closeToExit);
+      debugLog('已将关闭设置同步到渲染进程:', closeToExit);
     } catch (error) {
       console.error('同步关闭设置到渲染进程失败:', error);
     }
@@ -460,7 +503,7 @@ ipcMain.handle('clear-all-conversations', async (event) => {
     // 删除所有对话文件
     if (fs.existsSync(allConversationsFilePath)) {
       fs.unlinkSync(allConversationsFilePath);
-      console.log('✅ 已清除所有对话数据文件');
+      debugLog('✅ 已清除所有对话数据文件');
     }
     return { success: true };
   } catch (error) {
@@ -475,7 +518,7 @@ ipcMain.handle('clear-conversation-history', async (event) => {
     // 删除对话历史文件
     if (fs.existsSync(historyFilePath)) {
       fs.unlinkSync(historyFilePath);
-      console.log('✅ 已清除对话历史数据文件');
+      debugLog('✅ 已清除对话历史数据文件');
     }
     return { success: true };
   } catch (error) {
@@ -542,7 +585,7 @@ ipcMain.handle('send-ai-request', async (event, requestData) => {
 ipcMain.on('floating-ball-clicked', () => {
   // 悬浮球点击事件现在在floating-ball.html中处理
   // 这里不再打开主程序窗口
-  console.log('悬浮球点击事件，但不打开主程序窗口');
+  debugLog('悬浮球点击事件，但不打开主程序窗口');
 });
 
 // 监听悬浮球移动事件
@@ -580,7 +623,8 @@ function createMiniInputWindow() {
       nodeIntegration: true,
       contextIsolation: false,
       webviewTag: false,
-      devTools: true
+      devTools: true,
+      disableBlinkFeatures: 'Autofill'
     },
     frame: false,
     transparent: false,
@@ -620,7 +664,7 @@ function toggleMiniInputWindow() {
 
 // 监听从迷你输入框启动主程序的请求
 ipcMain.handle('launch-main-with-params', async (event, params) => {
-  console.log('收到从迷你输入框启动主程序的请求:', params);
+  debugLog('收到从迷你输入框启动主程序的请求:', params);
   
   // 这里我们直接在当前主窗口中处理消息，而不是启动新进程
   // 因为应用已经在运行中，我们向渲染进程发送消息来处理
@@ -658,6 +702,93 @@ ipcMain.on('open-main-window', () => {
 // 监听关闭应用事件
 ipcMain.on('close-app', () => {
   app.quit();
+});
+
+// 监听显示悬浮球右键菜单事件
+ipcMain.on('show-floating-ball-context-menu', (event, x, y) => {
+  const { Menu, MenuItem } = require('electron');
+  
+  // 创建右键菜单
+  const menu = new Menu();
+  
+  // 添加显示主窗口菜单项
+  menu.append(new MenuItem({
+    label: '显示主窗口',
+    click: () => {
+      if (mainWindow) {
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    }
+  }));
+
+  // 添加临时停用悬浮球菜单项
+  menu.append(new MenuItem({
+    label: '停用悬浮球到下次启动应用',
+    click: () => {
+      // 仅关闭当前悬浮球窗口，不修改设置
+      if (floatingBallWindow) {
+        floatingBallWindow.close();
+        floatingBallWindow = null;
+      }
+    }
+  }));
+  
+  // 添加永久停用悬浮球菜单项
+  menu.append(new MenuItem({
+    label: '永久停用悬浮球',
+    click: async () => {
+      // 发送消息到主窗口以更新设置
+      if (mainWindow && mainWindow.webContents) {
+        // 更新主窗口中的设置
+        mainWindow.webContents.executeJavaScript(
+          `document.getElementById('floatingBallToggle').checked = false;`
+        ).then(() => {
+          // 触发设置保存
+          mainWindow.webContents.executeJavaScript(
+            `if (typeof saveSettings === 'function') saveSettings(); `
+          );
+          
+          // 通知主进程更新悬浮球可见性
+          mainWindow.webContents.executeJavaScript(
+            `if (window.electronAPI && window.electronAPI.updateFloatingBallVisibility) { window.electronAPI.updateFloatingBallVisibility(false); } `
+          );
+        }).catch(err => {
+          console.error('更新悬浮球设置失败:', err);
+        });
+      }
+      
+      // 同时立即关闭当前悬浮球窗口
+      if (floatingBallWindow) {
+        floatingBallWindow.close();
+        floatingBallWindow = null;
+      }
+    }
+  }));
+  
+  // 添加关闭小R助手菜单项
+  menu.append(new MenuItem({
+    label: '关闭小R助手',
+    click: () => {
+      app.quit();
+    }
+  }));
+
+  // 这里添加一个让菜单美观分割线
+  menu.append(new MenuItem({ type: 'separator' }));
+
+  // 添加取消菜单项
+  menu.append(new MenuItem({
+    label: '取消',
+    role: 'cancel'
+  }));
+  
+  // 弹出菜单
+  menu.popup({
+    x: x,
+    y: y,
+    async: true
+  });
 });
 
 // 处理窗口聚焦请求的 IPC 通道
@@ -706,7 +837,7 @@ ipcMain.handle('update-floating-ball-visibility', async (event, visible) => {
       }
     }
     
-    console.log(`悬浮球可见性已设置为: ${visible}`);
+    debugLog(`悬浮球可见性已设置为: ${visible}`);
     return { success: true };
   } catch (error) {
     console.error('更新悬浮球可见性失败:', error);
@@ -775,10 +906,10 @@ function loadConfig() {
       const configData = fs.readFileSync(configPath, 'utf8');
       const config = JSON.parse(configData);
       closeToExit = config.closeToExit || false;
-      console.log('从配置文件加载关闭设置:', closeToExit);
+      debugLog('从配置文件加载关闭设置:', closeToExit);
     } else {
       // 如果配置文件不存在，尝试从旧的设置中加载
-      console.log('配置文件不存在，使用默认值');
+      debugLog('配置文件不存在，使用默认值');
     }
   } catch (error) {
     console.error('加载配置失败:', error);
@@ -791,7 +922,7 @@ function saveConfig() {
   try {
     const config = { closeToExit };
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-    console.log('配置已保存到文件:', config);
+    debugLog('配置已保存到文件:', config);
   } catch (error) {
     console.error('保存配置失败:', error);
   }
@@ -805,7 +936,7 @@ loadConfig();
 // 监听渲染进程发送的关闭设置更新
 ipcMain.on('update-close-to-exit-setting', (event, enabled) => {
   closeToExit = enabled;
-  console.log('关闭时直接退出设置已更新:', enabled);
+  debugLog('关闭时直接退出设置已更新:', enabled);
   
   // 同时保存到配置文件
   saveConfig();
@@ -845,6 +976,22 @@ ipcMain.handle('maximize-window', async (event) => {
   }
 });
 
+// 检查应用是否在焦点中的 IPC 通道
+ipcMain.handle('is-app-focused', async (event) => {
+  try {
+    if (mainWindow) {
+      const isFocused = mainWindow.isFocused();
+      debugLog('应用焦点状态:', isFocused);
+      return { success: true, isFocused };
+    } else {
+      return { success: false, isFocused: false, error: '主窗口不存在' };
+    }
+  } catch (error) {
+    console.error('检查应用焦点状态失败:', error);
+    return { success: false, isFocused: false, error: error.message };
+  }
+});
+
 // 处理窗口关闭的 IPC 通道
 ipcMain.handle('close-window', async (event) => {
   try {
@@ -879,7 +1026,7 @@ ipcMain.handle('update-shortcut', async (event, newShortcut) => {
     
     if (success) {
       currentShortcut = newShortcut;
-      console.log(`快捷键已更新为: ${newShortcut}`);
+      debugLog(`快捷键已更新为: ${newShortcut}`);
       return { success: true };
     } else {
       // 如果注册失败，重新注册默认快捷键
@@ -890,7 +1037,7 @@ ipcMain.handle('update-shortcut', async (event, newShortcut) => {
         }
       });
       currentShortcut = 'Ctrl+Alt+R';
-      console.log('快捷键注册失败，已恢复默认快捷键');
+      debugLog('快捷键注册失败，已恢复默认快捷键');
       return { success: false, error: '快捷键注册失败' };
     }
   } catch (error) {
@@ -902,28 +1049,39 @@ ipcMain.handle('update-shortcut', async (event, newShortcut) => {
 
 
 // 处理命令行参数中的协议URL
-app.on('second-instance', (event, commandLine, workingDirectory) => {
-  console.log('检测到第二个实例启动，正在将焦点切换到主窗口');
-  
-  
-  
-  // 当运行第二个实例时，如果主窗口存在则将其聚焦
-  if (mainWindow) {
-    console.log('主窗口存在，正在恢复和聚焦');
-    if (mainWindow.isMinimized()) {
-      console.log('主窗口已最小化，正在恢复');
-      mainWindow.restore();
+// 注意：second-instance 事件已在前面定义，此处不再重复定义
+// 第一个实例启动后，第二个实例会触发此事件，将焦点切换到第一个实例的窗口
+
+// 发送通知的 IPC 通道
+ipcMain.handle('send-notification', async (event, options) => {
+  try {
+    // 检查是否允许发送通知
+    // 优先使用512x512的ico图标，如果不存在则使用原来的png图标
+    let iconPath = path.join(__dirname, 'icon.ico');
+    if (!fs.existsSync(iconPath)) {
+      iconPath = path.join(__dirname, 'RuanmAi.png');
     }
-    mainWindow.show();
-    mainWindow.focus();
-    console.log('主窗口已聚焦');
     
-    // 向渲染进程发送消息，通知窗口需要聚焦
-    mainWindow.webContents.send('bring-to-front');
-  } else {
-    console.log('主窗口不存在');
+    const { title = '小R助手', body = '您有一条新消息', icon = iconPath } = options;
+    
+    // 创建通知实例
+    const notification = new Notification({
+      title,
+      body,
+      icon
+    });
+    
+    // 显示通知
+    notification.show();
+    
+    debugLog('通知已发送:', { title, body });
+    return { success: true };
+  } catch (error) {
+    console.error('发送通知失败:', error);
+    return { success: false, error: error.message };
   }
 });
+
 
 // 处理设置开机自启动的 IPC 通道
 ipcMain.handle('set-auto-launch', async (event, enable) => {
@@ -957,17 +1115,35 @@ ipcMain.handle('set-auto-launch', async (event, enable) => {
       if (enable) {
         // 添加到自动启动
         // 这里可以使用桌面环境的自动启动功能
-        console.log('Linux自动启动设置待实现');
+        debugLog('Linux自动启动设置待实现');
       } else {
         // 移除自动启动
-        console.log('Linux自动启动移除待实现');
+        debugLog('Linux自动启动移除待实现');
       }
     }
     
-    console.log(`开机自启动设置为: ${enable} (应用打包状态: ${app.isPackaged})`);
+    debugLog(`开机自启动设置为: ${enable} (应用打包状态: ${app.isPackaged})`);
     return { success: true };
   } catch (error) {
     console.error('设置开机自启动失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// 处理检查更新的 IPC 通道
+ipcMain.handle('check-for-update', async (event) => {
+  try {
+    // 动态导入更新器
+    const Updater = require('./Updater/updater');
+    const packageJson = require('./package.json');
+    const currentVersion = packageJson.version;
+    
+    const updater = new Updater(currentVersion);
+    const result = await updater.performUpdate();
+    
+    return result;
+  } catch (error) {
+    console.error('检查更新失败:', error);
     return { success: false, error: error.message };
   }
 });

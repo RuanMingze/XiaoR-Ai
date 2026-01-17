@@ -385,7 +385,7 @@ function addMessageToHistory(message, isUser = false, messageId = null, animate 
     messageDiv.textContent = '';
     chatHistory.appendChild(messageDiv);
     
-    // 滚动到底部
+    // 滚动到底部（第一次，添加消息后）
     chatHistory.scrollTop = chatHistory.scrollHeight;
     
     // 逐字添加内容
@@ -395,8 +395,7 @@ function addMessageToHistory(message, isUser = false, messageId = null, animate 
         messageDiv.textContent += message.charAt(i);
         i++;
         
-        // 滚动到底部
-        chatHistory.scrollTop = chatHistory.scrollHeight;
+        // 不再每次都滚动到底部
       } else {
         clearInterval(timer);
         
@@ -413,6 +412,8 @@ function addMessageToHistory(message, isUser = false, messageId = null, animate 
           }
         });
         
+        // 滚动到底部（第二次，动画完成后）
+        chatHistory.scrollTop = chatHistory.scrollHeight;
 
       }
     }, 30); // 每30毫秒显示一个字符
@@ -441,7 +442,8 @@ function addMessageToHistory(message, isUser = false, messageId = null, animate 
       
       // 为用户消息添加点击编辑功能
       messageDiv.classList.add('editable-message');
-      messageDiv.addEventListener('click', function() {
+      messageDiv.addEventListener('click', function(event) {
+        event.stopPropagation(); // 阻止事件冒泡
         editUserMessage(messageDiv, message, messageId);
       });
     }
@@ -472,6 +474,7 @@ function editUserMessage(messageElement, originalMessage, messageId) {
       } else {
         // 回车：保存编辑
         event.preventDefault();
+        event.stopPropagation(); // 阻止事件冒泡
         saveEditedMessage(messageElement, editDiv, textarea.value, messageId);
       }
     }
@@ -485,7 +488,8 @@ function editUserMessage(messageElement, originalMessage, messageId) {
   const saveButton = document.createElement('button');
   saveButton.textContent = '保存';
   saveButton.className = 'edit-save-btn';
-  saveButton.onclick = function() {
+  saveButton.onclick = function(event) {
+    event.stopPropagation(); // 阻止事件冒泡
     saveEditedMessage(messageElement, editDiv, textarea.value, messageId);
   };
   
@@ -493,7 +497,8 @@ function editUserMessage(messageElement, originalMessage, messageId) {
   const cancelButton = document.createElement('button');
   cancelButton.textContent = '取消';
   cancelButton.className = 'edit-cancel-btn';
-  cancelButton.onclick = function() {
+  cancelButton.onclick = function(event) {
+    event.stopPropagation(); // 阻止事件冒泡
     cancelEditMessage(messageElement, editDiv, originalMessage, messageId);
   };
   
@@ -508,10 +513,17 @@ function editUserMessage(messageElement, originalMessage, messageId) {
   // 隐藏原始消息内容并添加编辑界面
   messageElement.innerHTML = '';
   messageElement.appendChild(editDiv);
+  
+  // 让编辑文本域获得焦点并选中文本
+  setTimeout(() => {
+    textarea.focus();
+    textarea.select(); // 选中全部文本，方便用户直接输入
+  }, 0);
 }
 
 // 保存编辑后的消息
 function saveEditedMessage(messageElement, editInterface, newMessage, messageId) {
+  console.log('保存编辑的消息', { newMessage, messageId });
   if (newMessage.trim() === '') {
     showNotification('消息不能为空');
     return;
@@ -519,15 +531,18 @@ function saveEditedMessage(messageElement, editInterface, newMessage, messageId)
   
   // 更新消息显示
   messageElement.innerHTML = '';
-  messageElement.classList.remove('editable-message');
-  messageElement.removeEventListener('click', editUserMessage);
   messageElement.textContent = newMessage;
+  
+  console.log('消息内容已更新');
   
   // 重新添加编辑功能
   messageElement.classList.add('editable-message');
-  messageElement.addEventListener('click', function() {
+  messageElement.addEventListener('click', function(event) {
+    event.stopPropagation(); // 阻止事件冒泡
     editUserMessage(messageElement, newMessage, messageId);
   });
+  
+  console.log('编辑功能已重新添加');
   
   // 重新发送AI请求，使用编辑后的消息
   reSendAIRequest(newMessage);
@@ -535,19 +550,21 @@ function saveEditedMessage(messageElement, editInterface, newMessage, messageId)
 
 // 取消编辑
 function cancelEditMessage(messageElement, editInterface, originalMessage, messageId) {
+  console.log('取消编辑', { originalMessage, messageId });
+  
   // 恢复原始消息显示
   messageElement.innerHTML = '';
-  messageElement.classList.remove('editable-message');
-  messageElement.addEventListener('click', function() {
-    editUserMessage(messageElement, originalMessage, messageId);
-  });
   messageElement.textContent = originalMessage;
+  
+  console.log('原始消息内容已恢复');
   
   // 重新添加编辑功能
   messageElement.classList.add('editable-message');
   messageElement.addEventListener('click', function() {
     editUserMessage(messageElement, originalMessage, messageId);
   });
+  
+  console.log('编辑功能已重新添加（取消编辑后）');
 }
 
 // 重新发送AI请求
@@ -723,9 +740,38 @@ async function sendToAI(question, modelOverride = null) {
         // 只保留最近的几轮对话，避免system信息过长
         const recentHistory = currentHistory.slice(-contextCount);
         
-        if (recentHistory.length > 0) {
+        // 过滤掉图片生成相关的消息，避免防火墙拦截
+        const filteredHistory = recentHistory.filter(item => {
+          // 过滤掉包含图片生成协议的消息
+          if (item.role === 'assistant' && item.content.includes('XiaoR://Request?URL=')) {
+            return false;
+          }
+          // 过滤掉正在生成图片的消息
+          if (item.role === 'assistant' && item.content === '图片正在生成中...') {
+            return false;
+          }
+          // 过滤掉与图片生成相关的其他内容
+          if (item.role === 'assistant' && (item.content.includes('润色后的内容') && item.content.includes('XiaoR://Request?URL='))) {
+            return false;
+          }
+          // 过滤掉包含图片HTML标签的消息（图片生成成功后的结果）
+          if (item.role === 'assistant' && (item.content.includes('<img src=') && item.content.includes('yunzhiapi.cn'))) {
+            return false;
+          }
+          // 过滤掉包含图片链接的消息
+          if (item.role === 'assistant' && item.content.includes('图片生成成功！')) {
+            return false;
+          }
+          // 过滤掉包含API链接的其他消息
+          if (item.role === 'assistant' && item.content.includes('yunzhiapi.cn/API')) {
+            return false;
+          }
+          return true;
+        });
+        
+        if (filteredHistory.length > 0) {
           systemMessage += '\n\n以下是之前的对话历史：';
-          recentHistory.forEach((item, index) => {
+          filteredHistory.forEach((item, index) => {
             if (item.role === 'user') {
               systemMessage += `\n用户: ${item.content}`;
             } else {
@@ -1241,7 +1287,9 @@ async function sendToAI(question, modelOverride = null) {
                   
                   // 创建一个段落来包含文本、图片和链接
                   const resultElement = document.createElement('div');
-                  resultElement.innerHTML = `图片生成成功！<br>${imgHtml}<br><small>图片链接：<a href="${apiResult}" target="_blank">${apiResult}</a></small>`;
+                  // 创建下载链接，用于下载处理后的图片
+                  const downloadUrl = `https://yunzhiapi.cn/API/tpsytj/?url=${encodeURIComponent(apiResult)}&text=AI生成&doa=3&size=30`;
+                  resultElement.innerHTML = `图片生成成功！<br>${imgHtml}<br><small>图片链接：<a href="${apiResult}" target="_blank">${apiResult}</a><br><a href="${downloadUrl}" target="_blank" download><button style="margin-top: 5px; padding: 5px 10px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">下载图片</button></a></small>`;
                   
                   // 直接更新元素内容，绕过parseMarkdown
                   const messageElement = document.getElementById(messageId);
@@ -1251,7 +1299,7 @@ async function sendToAI(question, modelOverride = null) {
                   }
                   
                   // 更新对话历史中的这条消息
-                  updateMessageInHistory(messageId, `图片生成成功！<br>${imgHtml}<br><small>图片链接：<a href="${apiResult}" target="_blank">${apiResult}</a></small>`);
+                  updateMessageInHistory(messageId, `图片生成成功！<br>${imgHtml}<br><small>图片链接：<a href="${apiResult}" target="_blank">${apiResult}</a> | <a href="${downloadUrl}" target="_blank" download><button>下载图片</button></a></small>`);
                   
                   // 播放语音
                   playAIVoice('图片生成成功！');
@@ -1566,6 +1614,36 @@ async function sendToAI(question, modelOverride = null) {
                 // 正常处理AI响应
                 addMessageToHistory(aiResponse, false, null, animationEnabled);
                 
+                // 检查应用是否在焦点之外，如果是则发送通知
+                console.log('开始检查应用焦点状态并准备发送通知');
+                if (window.electronAPI && window.electronAPI.isAppFocused) {
+                  window.electronAPI.isAppFocused().then(result => {
+                    console.log('获取应用焦点状态结果:', result);
+                    if (result && result.isFocused === false) {
+                      console.log('应用不在焦点，准备发送通知');
+                      // 应用不在焦点，发送通知
+                      if (window.electronAPI && window.electronAPI.sendNotification) {
+                        window.electronAPI.sendNotification({
+                          title: '小R助手',
+                          body: 'AI助手已完成回复'
+                        }).then(notificationResult => {
+                          console.log('通知发送结果:', notificationResult);
+                        }).catch(notificationError => {
+                          console.error('发送通知失败:', notificationError);
+                        });
+                      } else {
+                        console.log('Electron API中没有sendNotification方法');
+                      }
+                    } else {
+                      console.log('应用在焦点中，不发送通知。焦点状态:', result ? result.isFocused : '未知');
+                    }
+                  }).catch(err => {
+                    console.error('检查应用焦点状态失败:', err);
+                  });
+                } else {
+                  console.log('Electron API中没有isAppFocused方法或window.electronAPI未定义');
+                }
+                
                 // 播放AI语音回复
                 playAIVoice(aiResponse);
               }
@@ -1664,6 +1742,11 @@ function handleUserMessage() {
     // 发送消息到 AI
     sendToAI(message);
   }
+  
+  // 确保输入框获得焦点，以便用户可以继续输入
+  setTimeout(() => {
+    userInput.focus();
+  }, 100);
 }
 
 // 事件监听器
@@ -2539,7 +2622,9 @@ function showTutorial() {
 }
 
 // 初始化欢迎消息
+// 初始化固定按钮状态
 document.addEventListener('DOMContentLoaded', async () => {
+  updatePinButton();
   // 检查是否需要显示引导教程
   if (localStorage.getItem('showTutorial') === 'true') {
     // 稍微延迟一下，确保页面元素已加载
@@ -2591,6 +2676,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 尝试从本地加载所有对话
   try {
     allConversations = await window.electronAPI.loadAllConversations();
+    
+    // 确保所有对话都有默认属性
+    allConversations = allConversations.map(conv => ensureConversationDefaults(conv));
     
     // 如果有对话记录，切换到最近的对话
     if (allConversations.length > 0) {
@@ -3156,20 +3244,10 @@ settingsButton.addEventListener('click', () => {
 });
 
 // 关于按钮事件监听器
-aboutButton.addEventListener('click', () => {
-  // 在新窗口中打开关于页面
-  if (window.electronAPI && window.electronAPI.openAboutWindow) {
-    window.electronAPI.openAboutWindow();
-  } else {
-    // 如果没有electronAPI，使用标准窗口打开
-    const aboutWindow = window.open('about.html', '_blank', 'width=800,height=600,resizable=yes,scrollbars=yes');
-    if (aboutWindow) {
-      aboutWindow.focus();
-    } else {
-      // 如果弹窗被阻止，则在当前窗口打开
-      window.location.href = 'about.html';
-    }
-  }
+aboutButton.addEventListener('click', (e) => {
+  e.preventDefault();
+  // 在当前窗口重定向到关于页面
+  window.location.href = 'about.html';
 });
 
 // AI模型选择变化事件监听器
@@ -3241,12 +3319,44 @@ closeChatListButton.addEventListener('click', () => {
   chatListSidebar.classList.remove('active');
 });
 
+// 对话列表固定状态
+let chatListPinned = false;
+
+// 更新固定按钮图标
+function updatePinButton() {
+  const pinButton = document.getElementById('pinChatList');
+  if (pinButton) {
+    const icon = pinButton.querySelector('i');
+    if (icon) {
+      icon.className = `fa-solid ${chatListPinned ? 'fa-thumbtack' : 'fa-thumbtack-slash'}`;
+      icon.title = chatListPinned ? '取消固定对话列表' : '固定对话列表';
+    }
+  }
+}
+
+// 固定对话列表按钮事件
+const pinChatListButton = document.getElementById('pinChatList');
+if (pinChatListButton) {
+  pinChatListButton.addEventListener('click', () => {
+    chatListPinned = !chatListPinned;
+    updatePinButton();
+    console.log('对话列表固定状态:', chatListPinned);
+  });
+}
+
 // 点击对话列表外部关闭列表
 window.addEventListener('click', (event) => {
   if (chatListSidebar.classList.contains('active') && 
       !chatListSidebar.contains(event.target) && 
-      event.target !== chatListButton) {
-    chatListSidebar.classList.remove('active');
+      event.target !== chatListButton && 
+      event.target !== closeChatListButton) {
+    
+    // 如果对话列表被固定，则不自动关闭对话列表
+    if (chatListPinned) {
+      // 不关闭对话列表
+    } else {
+      chatListSidebar.classList.remove('active');
+    }
   }
 });
 
@@ -3656,6 +3766,20 @@ function getMatchingPresetTag(tagFromAI) {
   return '通用对话';
 }
 
+// 确保对话具有默认属性
+function ensureConversationDefaults(conversation) {
+  if (conversation.pinned === undefined || conversation.pinned === null) {
+    conversation.pinned = false;
+  }
+  if (!conversation.tags) {
+    conversation.tags = ['未分类'];
+  }
+  if (!conversation.history) {
+    conversation.history = [];
+  }
+  return conversation;
+}
+
 // 获取当前对话
 function getCurrentConversation() {
   if (!currentConversationId) {
@@ -3865,6 +3989,7 @@ function createNewConversation() {
     id: newId,
     title: `对话 ${allConversations.length + 1}`,
     tags: ['未分类'], // 默认标签
+    pinned: false, // 默认不固定
     history: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
@@ -3939,7 +4064,25 @@ function updateChatListDisplay(filteredConversations = null) {
       );
     }
     
-    filteredConversations = conversationsToDisplay;
+    // 按固定状态和更新时间排序：固定对话在前，然后按更新时间降序排列
+    filteredConversations = conversationsToDisplay.sort((a, b) => {
+      // 如果a是固定的而b不是，a排在前面
+      if (a.pinned && !b.pinned) return -1;
+      // 如果b是固定的而a不是，b排在前面
+      if (!a.pinned && b.pinned) return 1;
+      // 如果都固定或都不固定，按更新时间排序
+      return new Date(b.updatedAt) - new Date(a.updatedAt);
+    });
+  } else {
+    // 如果提供了过滤后的对话列表，也需要按固定状态和更新时间排序
+    filteredConversations.sort((a, b) => {
+      // 如果a是固定的而b不是，a排在前面
+      if (a.pinned && !b.pinned) return -1;
+      // 如果b是固定的而a不是，b排在前面
+      if (!a.pinned && b.pinned) return 1;
+      // 如果都固定或都不固定，按更新时间排序
+      return new Date(b.updatedAt) - new Date(a.updatedAt);
+    });
   }
   
   filteredConversations.forEach(conversation => {
@@ -4054,6 +4197,8 @@ function updateTagOptions() {
     }
   });
 }
+
+
 
 // 重命名对话
 function renameConversation(conversationId) {
@@ -4513,9 +4658,39 @@ function extendModel() {
 }
 
 // 检查更新功能
-function checkForUpdate() {
-  showCustomAlert('检查更新', '当前已是最新版本: v1.1.8，如有更新会在此处显示。');
-  console.log('用户关闭了更新提示');
+async function checkForUpdate() {
+  try {
+    // 显示检查更新中提示
+    showCustomAlert('检查更新', '正在检查更新...');
+    
+    // 调用主进程的更新检查功能
+    const result = await window.electronAPI.checkForUpdate();
+    
+    if (result.success) {
+      if (result.downloadedFile) {
+        // 发现新版本并已下载
+        const updateContentStr = result.updateContent.join('\n');
+        showCustomAlert('发现新版本', `发现新版本: ${result.version}
+
+更新内容: 
+${updateContentStr}
+
+更新已下载到: ${result.downloadedFile}
+
+请关闭程序，将临时目录中的文件替换到安装目录，然后删除临时目录`);
+      } else {
+        // 当前已是最新版本
+        showCustomAlert('检查更新', `当前已是最新版本: ${result.version}，如有更新会在此处显示。`);
+        console.log('用户关闭了更新提示');
+      }
+    } else {
+      // 更新检查失败
+      showCustomAlert('检查更新失败', `更新检查失败: ${result.error || '未知错误'}`);
+    }
+  } catch (error) {
+    console.error('检查更新时发生错误:', error);
+    showCustomAlert('检查更新失败', `检查更新时发生错误: ${error.message}`);
+  }
 }
 
 // 定义showAlert函数

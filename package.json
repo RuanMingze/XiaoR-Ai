@@ -1,16 +1,15 @@
 {
   "name": "xiaor-ai-assistant",
-  "version": "1.1.8",
-  "description": "小R助手",
+  "version": "1.2.5",
+  "description": "让AI更贴近生活",
   "main": "main.js",
   "scripts": {
-    "start": "chcp 65001 >nul && electron .",
+    "start": "chcp 65001 >nul && set ELECTRON_NO_ATTACH_CONSOLE=1 && electron .",
     "nosil-start": "chcp 65001 >nul && electron . --no-single-instance-lock",
     "dev": "chcp 65001 >nul && cross-env NODE_ENV=development electron .",
     "build": "node build-script.js",
     "dist": "node build-script.js",
-    "test": "node test-menu.js",
-    "notlog-start": "set ELECTRON_NO_ATTACH_CONSOLE=1 && electron ."
+    "test": "node test-menu.js"
   },
   "keywords": [
     "electron",
@@ -27,7 +26,7 @@
   "build": {
     "appId": "com.ruansystem.xiaor-ai-assistant",
     "productName": "小R助手",
-    "icon": "RuanmAi.png",
+    "icon": "icon.ico",
     "protocols": [
       {
         "name": "xiaor",
@@ -45,7 +44,7 @@
         "nsis",
         "portable"
       ],
-      "icon": "RuanmAi.png"
+      "icon": "icon.ico"
     },
     "nsis": {
       "oneClick": false,
