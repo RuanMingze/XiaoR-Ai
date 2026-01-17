@@ -211,6 +211,32 @@
             border-radius: 5px;
             transition: background-color 0.3s;
         }
+        
+        /* 链接样式 */
+        .about-content a {
+            color: #4a90e2;
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: all 0.3s ease;
+            padding-bottom: 1px;
+            border-radius: 2px;
+        }
+        
+        .about-content a:hover {
+            color: #357ae8;
+            border-bottom-color: #4a90e2;
+            background-color: rgba(74, 144, 226, 0.1);
+        }
+        
+        .dark-theme .about-content a {
+            color: #5a9bde;
+        }
+        
+        .dark-theme .about-content a:hover {
+            color: #7aaee4;
+            border-bottom-color: #5a9bde;
+            background-color: rgba(90, 155, 222, 0.1);
+        }
 
         .back-button:hover {
             background-color: #357ae8;
@@ -292,7 +318,7 @@
                 <img src="RuanmAi.png" alt="小R助手图标" width="100" height="100" style="border-radius: 50%; object-fit: cover;">
             </div>
             <h1 class="about-title">小R AI助手</h1>
-            <p class="about-version">版本: v1.1.8</p>
+            <p class="about-version">版本: v1.2.5</p>
         </div>
         
         <div class="about-content">
@@ -378,7 +404,7 @@
                     <li><strong>v1.0.1 (2025-12-31)</strong> - 新年快乐！新增新年特效（雪花、爆竹、烟花）、新年祝福显示、悬浮球功能、图片预览放大功能、技能状态持久化保存等</li>
                     <li><strong>v1.0.8 (2026-01-01 ~ 2026-01-03)</strong> - 实现悬浮球点击切换迷你输入框功能、添加独立的迷你输入框窗口、大幅改版设置界面等</li>
                     <li><strong>v1.1.2 (2026-01-03 ~ 2026-01-10)</strong> - 新增"关闭时直接退出"设置选项、添加新年主题和跟随系统选项、添加GLM模型、添加更新与扩展标签等</li>
-                    <li><strong>v1.1.8 (2026-01-10 ~ 2026-01-11)</strong> - 添加新闻查询技能、对话列表搜索和标签筛选功能、数据导出功能、复制按钮、MiMo-V2模型、改进默认提示词等</li>
+                    <li><strong>v1.2.5 (2026-01-10 ~ 2026-01-11)</strong> - 添加新闻查询技能、对话列表搜索和标签筛选功能、数据导出功能、复制按钮、MiMo-V2模型、改进默认提示词等</li>
                 </ul>
             </div>
             
@@ -407,7 +433,14 @@
                     <li>Electron框架让跨平台桌面应用成为可能</li>
                     <li>Font Awesome提供的精美图标</li>
                     <li>所有支持和使用小R AI助手的朋友们</li>
+                    <li>
+                        <a href="https://yunzhiapi.cn" target="_blank">
+                            <img src="https://yunzhiapi.cn/favicon.ico" alt="云智API图标" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 5px;">
+                            云智API（yunzhiapi.cn）- 为我们提供大部分模型API服务
+                        </a>
+                    </li>
                 </ul>
+                <p>特别感谢云智API为广大用户提供稳定可靠的AI模型接口服务，让小R AI助手能够为用户提供多样化的智能对话体验。</p>
             </div>
             
             <div class="about-section">
@@ -429,7 +462,6 @@
                     <li>增加更多实用的AI技能</li>
                     <li>优化用户体验和界面设计</li>
                     <li>支持更多语言和地区</li>
-                    <li>增强离线功能和本地AI模型支持</li>
                     <li>提供插件系统支持第三方扩展</li>
                 </ul>
             </div>
@@ -442,7 +474,7 @@
         </div>
         
         <div class="about-footer">
-            <p>&copy; 2024 Ruanm. 版权所有 | 小R AI助手 - 让AI更贴近生活</p>
+            <p>&copy; 2025 Ruanm. 版权所有 | 小R AI助手 - 让AI更贴近生活</p>
         </div>
     </div>
 

@@ -229,7 +229,16 @@ if (typeof window !== 'undefined' && window.process && window.process.type) {
 } else if (navigator.userAgent.toLowerCase().includes('electron')) {
   // 通过User Agent检测Electron环境
   try {
-    ipcRenderer = require('electron').ipcRenderer;
+    // 在Electron中，通过window对象访问ipcRenderer
+    if (window.require) {
+      ipcRenderer = window.require('electron').ipcRenderer;
+    } else if (window.electronAPI) {
+      // 如果有electronAPI预加载脚本
+      ipcRenderer = window.electronAPI;
+    } else {
+      // 尝试直接从window对象获取（如果已在预加载脚本中暴露）
+      ipcRenderer = window.ipcRenderer || window.electron || null;
+    }
   } catch (e) {
     console.log('在Electron环境中但无法加载ipcRenderer:', e.message);
   }
