@@ -2,6 +2,12 @@
 
 小R AI助手是一个基于Electron开发的桌面应用程序，集成了多种AI功能，包括对话、图片生成、OCR识别、翻译等。
 
+## 网页版访问
+
+扫描下方二维码访问网页版小R AI助手：
+
+<img src="./QRCode.png" width="225" height="225">
+
 ## 功能特性
 
 - **多AI模型支持**：支持DeepseekV3.2、豆包、腾讯元宝、Qwen3等多种AI模型
